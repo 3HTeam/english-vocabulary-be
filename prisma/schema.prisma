@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Topic {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  imageUrl    String       @default("")
+  slug        String       @unique
+  description String?
+  isActive    Boolean      @default(true)
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  vocabularies Vocabulary[]
+}
+
+model Vocabulary {
+  id        String   @id @default(uuid())
+  topicId   String
+  word      String
+  meaning   String
+  phonetic  String?
+  type      String?
+  exampleSentence   String?
+  exampleTranslation String?
+  imageUrl  String?
+  audioUrl  String?  
+  synonyms  String[]
+  antonyms  String[]
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId])
+  @@unique([topicId, word])
+}
+
