@@ -13,6 +13,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
@@ -29,6 +30,7 @@ import { Public } from 'src/common/decorators/public.decorator';
  * - POST /auth/refresh - Refresh token (Public)
  * - GET /auth/profile - Lấy thông tin user hiện tại (Protected)
  * - POST /auth/change-password - Đổi mật khẩu (Protected)
+ * - POST /auth/verify-email - Xác thực email sau khi đăng ký (Public)
  */
 @Controller('auth')
 export class AuthController {
@@ -154,5 +156,22 @@ export class AuthController {
   ) {
     const token = authorization?.replace('Bearer ', '') || '';
     return this.authService.changePassword(user.id, changePasswordDto, token);
+  }
+
+  /**
+   * Xác thực email sau khi đăng ký
+   * Hỗ trợ cả OTP code và token từ email link
+   *
+   * @route POST /auth/verify-email
+   * @access Public
+   *
+   * @param verifyEmailDto - Email và OTP/token để xác thực
+   * @returns Thông tin user và session (nếu verify thành công)
+   */
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto);
   }
 }
