@@ -12,6 +12,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 /**
  * Auth Service
@@ -391,6 +392,112 @@ export class AuthService {
         throw error;
       }
       throw new UnauthorizedException('Token không hợp lệ');
+    }
+  }
+
+  /**
+   * Xác thực email sau khi đăng ký
+   * Hỗ trợ cả OTP code và token từ email link
+   *
+   * @param verifyEmailDto - Email và OTP/token để xác thực
+   * @returns Thông tin user và session (nếu verify thành công)
+   */
+  async verifyEmail(verifyEmailDto: VerifyEmailDto) {
+    try {
+      const { email, otp, token } = verifyEmailDto;
+
+      // Nếu có OTP code, verify bằng OTP
+      if (otp) {
+        const { data, error } = await this.supabase.auth.verifyOtp({
+          email,
+          token: otp,
+          type: 'email',
+        });
+
+        if (error) {
+          if (error.message.includes('Invalid token')) {
+            throw new UnauthorizedException('OTP không hợp lệ hoặc đã hết hạn');
+          }
+          throw new UnauthorizedException(error.message);
+        }
+
+        if (!data.user) {
+          throw new UnauthorizedException('Xác thực email thất bại');
+        }
+
+        return {
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            fullName: data.user.user_metadata?.full_name || '',
+            createdAt: data.user.created_at,
+            updatedAt: data.user.updated_at,
+            emailVerified: data.user.email_confirmed_at !== null,
+          },
+          session: data.session
+            ? {
+                accessToken: data.session.access_token,
+                refreshToken: data.session.refresh_token,
+                expiresAt: data.session.expires_at,
+              }
+            : null,
+          message: 'Xác thực email thành công',
+        };
+      }
+
+      if (token) {
+        const { data, error } = await this.supabase.auth.verifyOtp({
+          email,
+          token,
+          type: 'email',
+        });
+
+        if (error) {
+          if (error.message.includes('Invalid token')) {
+            throw new UnauthorizedException(
+              'Token không hợp lệ hoặc đã hết hạn',
+            );
+          }
+          throw new UnauthorizedException(error.message);
+        }
+
+        if (!data.user) {
+          throw new UnauthorizedException('Xác thực email thất bại');
+        }
+
+        return {
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            fullName: data.user.user_metadata?.full_name || '',
+            createdAt: data.user.created_at,
+            updatedAt: data.user.updated_at,
+            emailVerified: data.user.email_confirmed_at !== null,
+          },
+          session: data.session
+            ? {
+                accessToken: data.session.access_token,
+                refreshToken: data.session.refresh_token,
+                expiresAt: data.session.expires_at,
+              }
+            : null,
+          message: 'Xác thực email thành công',
+        };
+      }
+
+      throw new BadRequestException(
+        'Vui lòng cung cấp OTP hoặc token để xác thực',
+      );
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        'Có lỗi xảy ra khi xác thực email: ' + error.message,
+      );
     }
   }
 }
