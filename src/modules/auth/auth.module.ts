@@ -1,28 +1,55 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PrismaModule } from 'src/prisma/prisma.module';
 import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
+import { AuthAdminController } from './controllers/auth-admin.controller';
+import { AuthAppController } from './controllers/auth-app.controller';
 import { AuthGuard } from './guards/auth.guard';
 
 /**
  * Auth Module
  *
  * Module này quản lý tất cả các thành phần liên quan đến authentication:
- * - AuthService: Business logic cho authentication
- * - AuthController: HTTP endpoints cho authentication
+ * - AuthService: Business logic cho authentication (shared)
+ * - AuthAdminController: Admin Panel authentication endpoints
+ * - AuthAppController: Mobile App authentication endpoints
  * - AuthGuard: Guard để bảo vệ routes (set global)
+ *
+ * Dual-Controller Pattern:
+ * - Admin routes: /api/admin/auth (includes role, full metadata)
+ * - App routes: /api/app/auth (lightweight, mobile-optimized)
  */
 @Module({
-  controllers: [AuthController],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const expiresIn = (config.get<string | number>('JWT_EXPIRES_IN') ||
+          '3600s') as JwtSignOptions['expiresIn'];
+        return {
+          secret: config.get<string>('JWT_SECRET') || 'change_me',
+          signOptions: {
+            expiresIn,
+          },
+        };
+      },
+    }),
+  ],
+  controllers: [
+    AuthAdminController,
+    AuthAppController,
+  ],
   providers: [
     AuthService,
-    // Set AuthGuard làm global guard
-    // Tất cả routes sẽ được bảo vệ bởi AuthGuard trừ khi dùng @Public()
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
     },
   ],
-  exports: [AuthService], // Export AuthService để các module khác có thể dùng
+  exports: [AuthService],
 })
 export class AuthModule {}

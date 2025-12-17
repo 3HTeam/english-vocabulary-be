@@ -3,75 +3,68 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
-  Inject,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
-import { SUPABASE_CLIENT } from 'src/database/database.constants';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 /**
- * Auth Guard
+ * Auth Guard (JWT)
  *
- * Guard này sẽ:
- * 1. Kiểm tra xem route có được đánh dấu là @Public() không
- * 2. Nếu không phải public, sẽ verify JWT token từ header Authorization
- * 3. Nếu token hợp lệ, sẽ attach user info vào request để dùng trong controller
- *
- * Cách sử dụng:
- * - Thêm @UseGuards(AuthGuard) vào controller hoặc route
- * - Hoặc set global guard trong main.ts
+ * - Bypass nếu route được đánh dấu @Public()
+ * - Verify JWT từ Authorization header
+ * - Lấy user từ DB để đảm bảo user còn tồn tại
+ * - Attach user vào request (dùng @CurrentUser())
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    @Inject(SUPABASE_CLIENT)
-    private readonly supabase: SupabaseClient,
     private readonly reflector: Reflector,
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Kiểm tra xem route có được đánh dấu là public không
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-
-    // Nếu là public route thì không cần check auth
     if (isPublic) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractTokenFromHeader(request);
-
     if (!token) {
       throw new UnauthorizedException('Token chưa được cung cấp');
     }
 
     try {
-      // Verify token với Supabase
-      const { data, error } = await this.supabase.auth.getUser(token);
+      const payload = await this.jwtService.verifyAsync(token);
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
 
-      if (error || !data.user) {
-        throw new UnauthorizedException('Token không hợp lệ');
+      if (!user) {
+        throw new UnauthorizedException('User không tồn tại hoặc đã bị khóa');
       }
 
-      // Attach user info vào request để dùng trong controller
-      // Có thể dùng @CurrentUser() decorator để lấy
       request['user'] = {
-        id: data.user.id,
-        email: data.user.email,
-        fullName: data.user.user_metadata?.full_name || '',
-        createdAt: data.user.created_at,
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName || '',
+        role: user.role,
+        avatar: user.avatar,
+        phone: user.phone,
+        emailVerified: user.emailVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       };
 
       return true;
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
       throw new UnauthorizedException('Token không hợp lệ');
     }
   }
