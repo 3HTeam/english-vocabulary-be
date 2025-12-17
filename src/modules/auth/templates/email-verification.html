@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xác thực tài khoản</title>
+    <style>
+      /* Reset & Base */
+      body,
+      p,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: #f4f4f5;
+        color: #000000;
+        line-height: 1.5;
+      }
+      /* Mobile Responsive */
+      @media screen and (max-width: 600px) {
+        .container {
+          width: 100% !important;
+          border-radius: 0 !important;
+        }
+        .content {
+          padding: 40px 20px !important;
+        }
+        .otp-code {
+          font-size: 32px !important;
+          letter-spacing: 8px !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body style="margin: 0; padding: 0; background-color: #f4f4f5">
+    <table
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      width="100%"
+      style="background-color: #f4f4f5; padding: 40px 0"
+    >
+      <tr>
+        <td align="center">
+          <table
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            width="500"
+            class="container"
+            style="
+              background-color: #ffffff;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            "
+          >
+            <tr>
+              <td
+                class="content"
+                style="padding: 50px 40px; text-align: center"
+              >
+                <img
+                  src="https://res.cloudinary.com/damiapdnh/image/upload/v1765333513/logo/logo_1_hzjflb.png"
+                  alt="Lingo Logo"
+                  width="120"
+                  style="margin-bottom: 30px; display: inline-block"
+                />
+
+                <h1
+                  style="
+                    font-size: 20px;
+                    font-weight: 700;
+                    margin-bottom: 10px;
+                    color: #000000;
+                    letter-spacing: -0.5px;
+                  "
+                >
+                  Mã xác thực đăng ký
+                </h1>
+
+                <p style="font-size: 15px; color: #52525b; margin-bottom: 30px">
+                  Sử dụng mã bên dưới để hoàn tất thiết lập tài khoản của bạn.
+                </p>
+
+                <div
+                  style="
+                    background-color: #ffffff;
+                    border: 2px solid #000000;
+                    border-radius: 8px;
+                    padding: 20px 10px;
+                    margin-bottom: 30px;
+                  "
+                >
+                  <span
+                    class="otp-code"
+                    style="
+                      font-family: 'Courier New', Courier, monospace;
+                      font-size: 40px;
+                      font-weight: 700;
+                      color: #000000;
+                      letter-spacing: 12px;
+                      display: block;
+                      line-height: 1;
+                    "
+                  >
+                    {{ .Token }}
+                  </span>
+                </div>
+
+                <p style="font-size: 13px; color: #71717a">
+                  Mã này sẽ hết hạn trong <strong>5 phút</strong>.<br />
+                  Nếu bạn không yêu cầu, vui lòng bỏ qua email này.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                style="
+                  background-color: #000000;
+                  padding: 20px;
+                  text-align: center;
+                "
+              >
+                <p style="font-size: 12px; color: #71717a; margin: 0">
+                  &copy; 2025 Lingo App. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

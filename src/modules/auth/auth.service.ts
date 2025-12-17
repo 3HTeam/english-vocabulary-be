@@ -1,503 +1,473 @@
 import {
   Injectable,
-  Inject,
   UnauthorizedException,
   BadRequestException,
   ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { SUPABASE_CLIENT } from '../../database/database.constants';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import * as nodemailer from 'nodemailer';
+import { readFileSync } from 'fs';
+import { join, resolve } from 'path';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { User } from '@prisma/client';
 
 /**
  * Auth Service
  *
- * Service này xử lý tất cả logic liên quan đến authentication:
- * - Đăng ký tài khoản mới
- * - Đăng nhập
- * - Đăng xuất
- * - Refresh token
- * - Đổi mật khẩu
- * - Lấy thông tin user hiện tại
+ * JWT + Prisma + bcrypt (stateless).
  */
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(SUPABASE_CLIENT)
-    private readonly supabase: SupabaseClient,
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
 
-  /**
-   * Tạo Supabase client với user token
-   * Dùng cho các operations cần user context
-   */
-  private createUserClient(accessToken: string): SupabaseClient {
-    const supabaseUrl = this.configService.get<string>('supabase.url');
-    const supabaseAnonKey = this.configService.get<string>('supabase.anonKey');
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase URL and Anon Key must be provided');
+  private async createMailer() {
+    const host = this.configService.get<string>('SMTP_HOST');
+    const port = Number(this.configService.get<string>('SMTP_PORT') || 587);
+    const user = this.configService.get<string>('SMTP_USER');
+    const pass = this.configService.get<string>('SMTP_PASS');
+    if (!host || !user || !pass) {
+      throw new BadRequestException(
+        'SMTP configuration is missing (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)',
+      );
     }
-
-    return createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
   }
 
-  /**
-   * Đăng ký tài khoản mới
-   *
-   * @param registerDto - Thông tin đăng ký (email, password, fullName)
-   * @returns Thông tin user và session (access_token, refresh_token)
-   */
-  async register(registerDto: RegisterDto) {
-    try {
-      const { email, password, fullName } = registerDto;
+  private async sendVerificationEmail(email: string, otp: string) {
+    const transporter = await this.createMailer();
+    const from =
+      this.configService.get<string>('SMTP_FROM') || 'no-reply@example.com';
+    const appName = this.configService.get<string>('APP_NAME') || 'Our App';
+    const subject = `${appName} - Xác thực tài khoản`;
 
-      // Đăng ký user mới với Supabase Auth
-      const { data, error } = await this.supabase.auth.signUp({
-        email,
-        password,
-        options: {
+    let html: string | undefined;
+    try {
+      const srcPath = resolve(
+        process.cwd(),
+        'src',
+        'modules',
+        'auth',
+        'templates',
+        'email-verification.html',
+      );
+      const distPath = resolve(
+        process.cwd(),
+        'dist',
+        'modules',
+        'auth',
+        'templates',
+        'email-verification.html',
+      );
+
+      let templatePath: string;
+      try {
+        readFileSync(srcPath, 'utf8');
+        templatePath = srcPath;
+      } catch {
+        templatePath = distPath;
+      }
+
+      const raw = readFileSync(templatePath, 'utf8');
+      html = raw.replace('{{ .Token }}', otp);
+    } catch (e) {
+      html = `
+        <p>Xin chào,</p>
+        <p>Mã OTP xác thực tài khoản của bạn là: <b>${otp}</b></p>
+        <p>Mã có hiệu lực trong 5 phút.</p>
+        <p>Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
+      `;
+    }
+
+    await transporter.sendMail({
+      to: email,
+      from,
+      subject,
+      html,
+    });
+  }
+
+  private generateOtp(length = 6): string {
+    const digits = '0123456789';
+    let otp = '';
+    for (let i = 0; i < length; i++) {
+      otp += digits[Math.floor(Math.random() * digits.length)];
+    }
+    return otp;
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    const rounds =
+      Number(this.configService.get<string>('BCRYPT_SALT_ROUNDS')) || 10;
+    return bcrypt.hash(password, rounds);
+  }
+
+  private async comparePassword(
+    password: string,
+    hash: string,
+  ): Promise<boolean> {
+    return bcrypt.compare(password, hash);
+  }
+
+  private getAccessTokenExpiresIn(): string | number {
+    return this.configService.get<string>('JWT_EXPIRES_IN') || '3600s';
+  }
+
+  private getRefreshTokenExpiresIn(): string | number {
+    return this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') || '7d';
+  }
+
+  private signTokens(user: User) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessOptions: JwtSignOptions = {
+      expiresIn: this.getAccessTokenExpiresIn() as JwtSignOptions['expiresIn'],
+    };
+    const refreshOptions: JwtSignOptions = {
+      expiresIn: this.getRefreshTokenExpiresIn() as JwtSignOptions['expiresIn'],
+    };
+    const accessToken = this.jwtService.sign(payload, accessOptions);
+    const refreshToken = this.jwtService.sign(payload, refreshOptions);
+    return { accessToken, refreshToken };
+  }
+
+  private sanitizeUser(user: User) {
+    if (!user) return null;
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName || '',
+      role: user.role,
+      avatar: user.avatar,
+      phone: user.phone,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
+  /**
+   * Đăng ký người dùng App (yêu cầu xác thực email bằng OTP)
+   */
+  async registerApp(registerDto: RegisterDto) {
+    const { email, password, fullName } = registerDto;
+
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing && existing.emailVerified) {
+      throw new ConflictException('Email này đã được sử dụng');
+    }
+
+    const hashed = await this.hashPassword(password);
+    const otp = this.generateOtp();
+    const otpHash = await this.hashPassword(otp);
+    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+
+    const user = existing
+      ? await this.prisma.user.update({
+          where: { email },
           data: {
-            full_name: fullName,
+            password: hashed,
+            fullName,
+            role: 'user',
+            emailVerified: false,
+            emailVerificationOtp: otpHash,
+            emailVerificationExpires: expires,
           },
-        },
-      });
+        })
+      : await this.prisma.user.create({
+          data: {
+            email,
+            password: hashed,
+            fullName,
+            role: 'user',
+            emailVerified: false,
+            emailVerificationOtp: otpHash,
+            emailVerificationExpires: expires,
+          },
+        });
 
-      if (error) {
-        if (error.message.includes('already registered')) {
-          throw new ConflictException('Email này đã được sử dụng');
-        }
-        throw new BadRequestException(error.message);
-      }
+    await this.sendVerificationEmail(email, otp);
 
-      if (!data.user) {
-        throw new BadRequestException('Không thể tạo tài khoản');
-      }
-
-      if (data.user.identities && data.user.identities.length === 0) {
-        throw new ConflictException('Email này đã được sử dụng');
-      }
-
-      // Trả về thông tin user và session
-      return {
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-          fullName: data.user.user_metadata?.full_name || fullName,
-          createdAt: data.user.created_at,
-          updatedAt: data.user.updated_at,
-        },
-        session: data.session
-          ? {
-              accessToken: data.session.access_token,
-              refreshToken: data.session.refresh_token,
-              expiresAt: data.session.expires_at,
-            }
-          : null,
-        message:
-          'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.',
-      };
-    } catch (error) {
-      // Nếu đã là exception của NestJS thì throw lại
-      if (
-        error instanceof ConflictException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(
-        'Có lỗi xảy ra khi đăng ký: ' + error.message,
-      );
-    }
+    return {
+      user: this.sanitizeUser(user),
+      session: null,
+      message:
+        'Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.',
+    };
   }
 
   /**
-   * Đăng nhập
-   *
-   * @param loginDto - Thông tin đăng nhập (email, password)
-   * @returns Thông tin user và session (access_token, refresh_token)
+   * Đăng ký Admin (không cần OTP, tự đánh dấu verified)
    */
-  async login(loginDto: LoginDto) {
-    try {
-      const { email, password } = loginDto;
+  async registerAdmin(registerDto: RegisterDto) {
+    const { email, password, fullName } = registerDto;
 
-      // Đăng nhập với Supabase Auth
-      const { data, error } = await this.supabase.auth.signInWithPassword({
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      throw new ConflictException('Email này đã được sử dụng');
+    }
+
+    const hashed = await this.hashPassword(password);
+    const user = await this.prisma.user.create({
+      data: {
         email,
-        password,
-      });
+        password: hashed,
+        fullName,
+        role: 'admin',
+        emailVerified: true,
+        emailVerificationOtp: null,
+        emailVerificationExpires: null,
+      },
+    });
 
-      if (error) {
-        // Kiểm tra các lỗi phổ biến
-        if (error.message.includes('Invalid login credentials')) {
-          throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
-        }
-        if (error.message.includes('Email not confirmed')) {
-          throw new UnauthorizedException(
-            'Vui lòng xác thực email trước khi đăng nhập',
-          );
-        }
-        throw new UnauthorizedException(error.message);
-      }
+    const tokens = this.signTokens(user);
+    return {
+      user: this.sanitizeUser(user),
+      session: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
+      message: 'Tạo admin thành công',
+    };
+  }
 
-      if (!data.user || !data.session) {
-        throw new UnauthorizedException('Đăng nhập thất bại');
-      }
+  async login(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    }
 
-      // Trả về thông tin user và session
-      return {
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-          fullName: data.user.user_metadata?.full_name || '',
-          createdAt: data.user.created_at,
-          updatedAt: data.user.updated_at,
-        },
-        session: {
-          accessToken: data.session.access_token,
-          refreshToken: data.session.refresh_token,
-          expiresAt: data.session.expires_at,
-        },
-        message: 'Đăng nhập thành công',
-      };
-    } catch (error) {
-      // Nếu đã là exception của NestJS thì throw lại
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
+    if (!user.emailVerified) {
       throw new UnauthorizedException(
-        'Có lỗi xảy ra khi đăng nhập: ' + error.message,
+        'Tài khoản chưa xác thực email. Vui lòng kiểm tra email để kích hoạt.',
       );
     }
-  }
 
-  /**
-   * Đăng xuất
-   *
-   * @param accessToken - Access token của user
-   * @returns Thông báo đăng xuất thành công
-   *
-   * Lưu ý: Với Supabase, việc đăng xuất chủ yếu là invalidate token ở client side.
-   * Token sẽ tự động hết hạn sau một thời gian. Ở server side, chúng ta chỉ cần
-   * xác nhận rằng token đã được verify (qua AuthGuard) là đủ.
-   */
-  async logout(accessToken: string) {
-    try {
-      // Verify token trước khi logout
-      const { error } = await this.supabase.auth.getUser(accessToken);
-
-      if (error) {
-        throw new UnauthorizedException('Token không hợp lệ');
-      }
-
-      // Với Supabase, token sẽ tự động expire
-      // Client nên xóa token khỏi storage
-      return {
-        message: 'Đăng xuất thành công',
-      };
-    } catch (error) {
-      if (
-        error instanceof UnauthorizedException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(
-        'Có lỗi xảy ra khi đăng xuất: ' + error.message,
-      );
+    const match = await this.comparePassword(password, user.password);
+    if (!match) {
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
+
+    const tokens = this.signTokens(user);
+    return {
+      user: this.sanitizeUser(user),
+      session: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
+      message: 'Đăng nhập thành công',
+    };
   }
 
-  /**
-   * Refresh token
-   *
-   * @param refreshTokenDto - Refresh token
-   * @returns Session mới với access token và refresh token mới
-   */
+  async logout(_accessToken: string) {
+    return { message: 'Đăng xuất thành công' };
+  }
+
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    const { refreshToken } = refreshTokenDto;
     try {
-      const { refreshToken } = refreshTokenDto;
-
-      // Refresh token với Supabase
-      const { data, error } = await this.supabase.auth.refreshSession({
-        refresh_token: refreshToken,
+      const payload = await this.jwtService.verifyAsync(refreshToken);
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
       });
-
-      if (error) {
-        throw new UnauthorizedException(
-          'Refresh token không hợp lệ hoặc đã hết hạn',
-        );
+      if (!user) {
+        throw new UnauthorizedException('User không tồn tại');
       }
-
-      if (!data.session) {
-        throw new UnauthorizedException('Không thể refresh token');
-      }
-
+      const tokens = this.signTokens(user);
       return {
         session: {
-          accessToken: data.session.access_token,
-          refreshToken: data.session.refresh_token,
-          expiresAt: data.session.expires_at,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
         },
         message: 'Refresh token thành công',
       };
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
       throw new UnauthorizedException(
-        'Có lỗi xảy ra khi refresh token: ' + error.message,
+        'Refresh token không hợp lệ hoặc đã hết hạn',
       );
     }
   }
 
-  /**
-   * Đổi mật khẩu
-   *
-   * @param userId - ID của user (từ @CurrentUser decorator)
-   * @param changePasswordDto - Mật khẩu cũ và mới
-   * @param accessToken - Access token của user
-   * @returns Thông báo đổi mật khẩu thành công
-   */
   async changePassword(
     userId: string,
     changePasswordDto: ChangePasswordDto,
-    accessToken: string,
+    _accessToken: string,
   ) {
-    try {
-      const { oldPassword, newPassword } = changePasswordDto;
-
-      // Tạo user client với token
-      const userClient = this.createUserClient(accessToken);
-
-      // Lấy thông tin user hiện tại
-      const { data: userData, error: userError } =
-        await userClient.auth.getUser();
-
-      if (userError || !userData.user) {
-        throw new UnauthorizedException('Không thể xác thực user');
-      }
-
-      // Kiểm tra mật khẩu cũ bằng cách thử đăng nhập với anon key
-      const supabaseUrl = this.configService.get<string>('supabase.url');
-      const supabaseAnonKey =
-        this.configService.get<string>('supabase.anonKey');
-      const tempClient = createClient(supabaseUrl!, supabaseAnonKey!);
-
-      const { error: signInError } = await tempClient.auth.signInWithPassword({
-        email: userData.user.email!,
-        password: oldPassword,
-      });
-
-      if (signInError) {
-        throw new UnauthorizedException('Mật khẩu cũ không đúng');
-      }
-
-      // Đổi mật khẩu với user client
-      const { error: updateError } = await userClient.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (updateError) {
-        throw new BadRequestException(updateError.message);
-      }
-
-      return {
-        message: 'Đổi mật khẩu thành công',
-      };
-    } catch (error) {
-      if (
-        error instanceof UnauthorizedException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(
-        'Có lỗi xảy ra khi đổi mật khẩu: ' + error.message,
-      );
+    const { oldPassword, newPassword } = changePasswordDto;
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy user');
     }
+    const match = await this.comparePassword(oldPassword, user.password);
+    if (!match) {
+      throw new UnauthorizedException('Mật khẩu cũ không đúng');
+    }
+    const hashed = await this.hashPassword(newPassword);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashed },
+    });
+    return { message: 'Đổi mật khẩu thành công' };
   }
 
-  /**
-   * Lấy thông tin user hiện tại
-   *
-   * @param accessToken - Access token của user
-   * @returns Thông tin user
-   */
   async getProfile(accessToken: string) {
     try {
-      // Tạo Supabase client với token của user
-      const { data, error } = await this.supabase.auth.getUser(accessToken);
-
-      if (error || !data.user) {
-        throw new UnauthorizedException('Không thể xác thực user');
+      const payload = await this.jwtService.verifyAsync(accessToken);
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
+      if (!user) {
+        throw new UnauthorizedException('User không tồn tại');
       }
-
-      return {
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-          fullName: data.user.user_metadata?.full_name || '',
-          phone: data.user.phone || '',
-          avatar: data.user.user_metadata?.avatar || '',
-          role: data.user.user_metadata?.role || '',
-          createdAt: data.user.created_at,
-          updatedAt: data.user.updated_at,
-          emailVerified: data.user.email_confirmed_at !== null,
-        },
-      };
+      return { user: this.sanitizeUser(user) };
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
       throw new UnauthorizedException(
         'Có lỗi xảy ra khi lấy thông tin user: ' + error.message,
       );
     }
   }
 
-  /**
-   * Verify JWT token từ Supabase
-   *
-   * @param token - JWT token
-   * @returns Thông tin user từ token
-   */
   async verifyToken(token: string) {
     try {
-      const { data, error } = await this.supabase.auth.getUser(token);
-
-      if (error || !data.user) {
-        throw new UnauthorizedException('Token không hợp lệ');
-      }
-
-      return data.user;
+      const payload = await this.jwtService.verifyAsync(token);
+      return payload;
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
       throw new UnauthorizedException('Token không hợp lệ');
     }
   }
 
-  /**
-   * Xác thực email sau khi đăng ký
-   * Hỗ trợ cả OTP code và token từ email link
-   *
-   * @param verifyEmailDto - Email và OTP/token để xác thực
-   * @returns Thông tin user và session (nếu verify thành công)
-   */
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
-    try {
-      const { email, otp, token } = verifyEmailDto;
-
-      // Nếu có OTP code, verify bằng OTP
-      if (otp) {
-        const { data, error } = await this.supabase.auth.verifyOtp({
-          email,
-          token: otp,
-          type: 'email',
-        });
-
-        if (error) {
-          if (error.message.includes('Invalid token')) {
-            throw new UnauthorizedException('OTP không hợp lệ hoặc đã hết hạn');
-          }
-          throw new UnauthorizedException(error.message);
-        }
-
-        if (!data.user) {
-          throw new UnauthorizedException('Xác thực email thất bại');
-        }
-
-        return {
-          user: {
-            id: data.user.id,
-            email: data.user.email,
-            fullName: data.user.user_metadata?.full_name || '',
-            createdAt: data.user.created_at,
-            updatedAt: data.user.updated_at,
-            emailVerified: data.user.email_confirmed_at !== null,
-          },
-          session: data.session
-            ? {
-                accessToken: data.session.access_token,
-                refreshToken: data.session.refresh_token,
-                expiresAt: data.session.expires_at,
-              }
-            : null,
-          message: 'Xác thực email thành công',
-        };
-      }
-
-      if (token) {
-        const { data, error } = await this.supabase.auth.verifyOtp({
-          email,
-          token,
-          type: 'email',
-        });
-
-        if (error) {
-          if (error.message.includes('Invalid token')) {
-            throw new UnauthorizedException(
-              'Token không hợp lệ hoặc đã hết hạn',
-            );
-          }
-          throw new UnauthorizedException(error.message);
-        }
-
-        if (!data.user) {
-          throw new UnauthorizedException('Xác thực email thất bại');
-        }
-
-        return {
-          user: {
-            id: data.user.id,
-            email: data.user.email,
-            fullName: data.user.user_metadata?.full_name || '',
-            createdAt: data.user.created_at,
-            updatedAt: data.user.updated_at,
-            emailVerified: data.user.email_confirmed_at !== null,
-          },
-          session: data.session
-            ? {
-                accessToken: data.session.access_token,
-                refreshToken: data.session.refresh_token,
-                expiresAt: data.session.expires_at,
-              }
-            : null,
-          message: 'Xác thực email thành công',
-        };
-      }
-
-      throw new BadRequestException(
-        'Vui lòng cung cấp OTP hoặc token để xác thực',
-      );
-    } catch (error) {
-      if (
-        error instanceof UnauthorizedException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(
-        'Có lỗi xảy ra khi xác thực email: ' + error.message,
+    const { email, otp } = verifyEmailDto;
+    if (!email) {
+      throw new BadRequestException('Vui lòng cung cấp email để xác thực');
+    }
+    if (!otp) {
+      throw new BadRequestException('Vui lòng cung cấp OTP để xác thực');
+    }
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy user');
+    }
+    if (user.emailVerified) {
+      return {
+        user: this.sanitizeUser(user),
+        session: null,
+        message: 'Email đã được xác thực',
+      };
+    }
+    if (!user.emailVerificationOtp || !user.emailVerificationExpires) {
+      throw new UnauthorizedException(
+        'OTP không tồn tại, vui lòng đăng ký lại',
       );
     }
+    if (user.emailVerificationExpires < new Date()) {
+      throw new UnauthorizedException('OTP đã hết hạn, vui lòng đăng ký lại');
+    }
+    const match = await this.comparePassword(otp, user.emailVerificationOtp);
+    if (!match) {
+      throw new UnauthorizedException('OTP không hợp lệ');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { email },
+      data: {
+        emailVerified: true,
+        emailVerificationOtp: null,
+        emailVerificationExpires: null,
+      },
+    });
+    const tokens = this.signTokens(updated);
+    return {
+      user: this.sanitizeUser(updated),
+      session: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
+      message: 'Xác thực email thành công, tài khoản đã được kích hoạt',
+    };
+  }
+
+  formatAdminResponse(result: any) {
+    if (!result) return result;
+
+    const formatted: any = {
+      message: result.message,
+    };
+
+    if (result.user) {
+      formatted.user = this.formatAdminUser(result.user);
+    }
+
+    if (result.session) {
+      formatted.session = result.session;
+    }
+
+    return formatted;
+  }
+
+  formatAdminUser(user: any) {
+    if (!user) return user;
+
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName || '',
+      phone: user.phone || '',
+      avatar: user.avatar || '',
+      role: user.role || '',
+      emailVerified: user.emailVerified ?? false,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
+  formatAppResponse(result: any) {
+    if (!result) return result;
+
+    const formatted: any = {
+      message: result.message,
+    };
+
+    if (result.user) {
+      formatted.user = this.formatAppUser(result.user);
+    }
+
+    if (result.session) {
+      formatted.session = result.session;
+    }
+
+    return formatted;
+  }
+
+  formatAppUser(user: any) {
+    if (!user) return user;
+
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName || '',
+      phone: user.phone || '',
+      avatar: user.avatar || '',
+      emailVerified: user.emailVerified ?? false,
+    };
   }
 }

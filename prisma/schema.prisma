@@ -11,7 +11,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model Topic {
@@ -48,5 +47,20 @@ model Vocabulary {
 
   @@index([topicId])
   @@unique([topicId, word])
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String  
+  fullName      String?
+  role          String   @default("user")
+  avatar        String?
+  phone         String?
+  emailVerified Boolean  @default(false)
+  emailVerificationOtp     String?
+  emailVerificationExpires DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
