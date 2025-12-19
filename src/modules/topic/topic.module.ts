@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TopicService } from './topic.service';
-import { TopicController } from './topic.controller';
+import { TopicAdminController } from './controllers/topic-admin.controller';
 
 @Module({
-  controllers: [TopicController],
+  controllers: [TopicAdminController],
   providers: [TopicService],
 })
 export class TopicModule {}
