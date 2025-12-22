@@ -11,12 +11,7 @@ english-vocabulary/
 ├── src/
 │   ├── config/                    # ⚙️ Cấu hình ứng dụng
 │   │   ├── app.config.ts          # Cấu hình app (port, env, prefix)
-│   │   ├── database.config.ts     # Cấu hình database
-│   │   └── supabase.config.ts     # Cấu hình Supabase
-│   │
-│   ├── database/                   # 🗄️ Database module
-│   │   ├── database.module.ts     # Module kết nối Supabase
-│   │   └── database.constants.ts  # Constants cho dependency injection
+│   │   └── database.config.ts     # Cấu hình database
 │   │
 │   ├── common/                     # 🔧 Shared utilities
 │   │   ├── decorators/            # Custom decorators
@@ -64,7 +59,6 @@ Chứa các file cấu hình cho ứng dụng:
 
 - **app.config.ts**: Cấu hình chung (port, environment, API prefix)
 - **database.config.ts**: Cấu hình kết nối database
-- **supabase.config.ts**: Cấu hình Supabase (URL, keys)
 
 **Cách sử dụng:**
 
@@ -75,23 +69,9 @@ constructor(private configService: ConfigService) {
 }
 ```
 
-### 2. `/src/database/` - Database Module
+### 2. `/src/database/` - Database / ORM
 
-Module global để kết nối Supabase:
-
-- **database.module.ts**: Tạo và export Supabase client
-- **database.constants.ts**: Token để inject Supabase client
-
-**Cách sử dụng:**
-
-```typescript
-import { SUPABASE_CLIENT } from '../../database/database.constants';
-
-constructor(
-  @Inject(SUPABASE_CLIENT)
-  private readonly supabase: SupabaseClient,
-) {}
-```
+Hiện tại dự án đang sử dụng Prisma (xem thư mục `src/prisma/`) để làm việc với database.
 
 ### 3. `/src/common/` - Shared Utilities
 

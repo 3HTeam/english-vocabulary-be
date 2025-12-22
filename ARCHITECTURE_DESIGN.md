@@ -39,12 +39,7 @@ src/
 │
 ├── config/                          # Configuration files
 │   ├── app.config.ts
-│   ├── database.config.ts
-│   └── supabase.config.ts
-│
-├── database/                        # Database setup
-│   ├── database.module.ts
-│   └── database.constants.ts
+│   └── database.config.ts
 │
 ├── prisma/                          # Prisma service
 │   ├── prisma.module.ts
@@ -927,7 +922,6 @@ bootstrap();
 ```typescript
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { DatabaseModule } from './database/database.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TopicModule } from './modules/topic/topic.module';
@@ -935,7 +929,6 @@ import { UploadModule } from './modules/upload/upload.module';
 import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
 import { LessonsModule } from './modules/lessons/lessons.module'; // NEW
 import databaseConfig from './config/database.config';
-import supabaseConfig from './config/supabase.config';
 import appConfig from './config/app.config';
 
 @Module({
@@ -943,12 +936,11 @@ import appConfig from './config/app.config';
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, supabaseConfig, appConfig],
+      load: [databaseConfig, appConfig],
       envFilePath: ['.env.local', '.env'],
     }),
 
     // Core modules
-    DatabaseModule,
     PrismaModule,
 
     // Feature modules
