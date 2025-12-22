@@ -6,7 +6,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { PaginationDto, PaginationMeta } from 'src/common/dto/pagination.dto';
-import { Topic } from '@prisma/client';
+import { Prisma, Topic } from '@prisma/client';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 
 @Injectable()
@@ -61,15 +61,19 @@ export class TopicService {
     const limit = pagination.limit ?? 10;
     const skip = (page - 1) * limit;
 
+    const where: Prisma.TopicWhereInput = {
+      ...(search && { name: { contains: search, mode: 'insensitive' } }),
+    };
+
     const [topics, total] = await this.prisma.$transaction([
       this.prisma.topic.findMany({
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        where: { name: { contains: search, mode: 'insensitive' } },
+        where,
       }),
       this.prisma.topic.count({
-        where: { name: { contains: search, mode: 'insensitive' } },
+        where,
       }),
     ]);
 
@@ -85,8 +89,8 @@ export class TopicService {
   }
 
   async findOne(id: string): Promise<Topic> {
-    const topic = await this.prisma.topic.findUnique({
-      where: { id },
+    const topic = await this.prisma.topic.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!topic) {
@@ -183,17 +187,132 @@ export class TopicService {
 
   async delete(id: string): Promise<void> {
     try {
-      const existingTopic = await this.prisma.topic.findUnique({
+      const topic = await this.prisma.topic.findFirst({
         where: { id },
+        include: {
+          vocabularies: {
+            where: {
+              deletedAt: null,
+            },
+          },
+        },
       });
-      if (!existingTopic) {
-        throw new NotFoundException('Không tìm thấy chủ đề');
+
+      if (!topic) {
+        throw new NotFoundException(`Không tìm thấy chủ đề với id ${id}`);
+      }
+
+      if (topic.vocabularies.length > 0) {
+        throw new BadRequestException(
+          `Chủ đề với id ${id} có từ vựng, vui lòng xóa chúng trước`,
+        );
+      }
+
+      await this.prisma.topic.update({
+        where: { id },
+        data: {
+          deletedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async findAllDeleted(
+    pagination: PaginationDto,
+    search?: string,
+  ): Promise<{ topics: Topic[]; meta: PaginationMeta }> {
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.TopicWhereInput = {
+      ...(search && { name: { contains: search, mode: 'insensitive' } }),
+      deletedAt: {
+        not: null,
+      },
+    };
+
+    const [topics, total] = await this.prisma.$transaction([
+      this.prisma.topic.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        where,
+      }),
+      this.prisma.topic.count({
+        where,
+      }),
+    ]);
+
+    return {
+      topics,
+      meta: {
+        total,
+        page,
+        limit,
+        pageCount: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  async forceDelete(id: string): Promise<void> {
+    try {
+      const topic = await this.prisma.topic.findFirst({
+        where: { id, deletedAt: { not: null } },
+      });
+
+      if (!topic) {
+        throw new NotFoundException(`Không tìm thấy chủ đề với id ${id}`);
+      }
+
+      if (topic.deletedAt === null) {
+        throw new BadRequestException(
+          `Chủ đề này cần được xoá mềm trước khi xoá vĩnh viễn`,
+        );
       }
 
       await this.prisma.topic.delete({
         where: { id },
       });
     } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async restoreDelete(id: string): Promise<void> {
+    try {
+      const topic = await this.prisma.topic.findUnique({
+        where: { id },
+      });
+
+      if (!topic) {
+        throw new NotFoundException(`Không tìm thấy chủ đề với id ${id}`);
+      }
+
+      if (!topic.deletedAt) {
+        throw new BadRequestException(`Chủ đề với id ${id} chưa bị xóa`);
+      }
+
+      await this.prisma.topic.update({
+        where: { id },
+        data: { deletedAt: null, updatedAt: new Date().toISOString() },
+      });
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
       throw new BadRequestException(error.message);
     }
   }

@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -72,6 +73,21 @@ export class TopicAdminController {
   }
 
   /**
+   * Xem chủ đề đã xoá mềm (Admin)
+   *
+   * @route GET /api/admin/topics/deleted
+   * @access Admin only
+   */
+  @Get('deleted')
+  @ApiOperation({ summary: 'Xem chủ đề đã xoá mềm (Admin)' })
+  async viewDelete(@Query() paginationDto: PaginationDto) {
+    return await this.topicService.findAllDeleted(
+      paginationDto,
+      paginationDto.search,
+    );
+  }
+
+  /**
    * Chi tiết chủ đề (Admin)
    *
    * @route GET /api/admin/topics/:id
@@ -119,5 +135,31 @@ export class TopicAdminController {
     return {
       message: 'Xóa chủ đề thành công',
     };
+  }
+
+  /**
+   * Khôi phục chủ đề (Admin)
+   *
+   * @route PUT /api/admin/topics/:id/restore
+   * @access Admin only
+   */
+  @Put(':id/restore')
+  @ApiOperation({ summary: 'Khôi phục chủ đề (Admin)' })
+  async restore(@Param('id', new ParseUUIDPipe()) id: string) {
+    await this.topicService.restoreDelete(id);
+    return { message: 'Khôi phục chủ đề thành công' };
+  }
+
+  /**
+   * Xoá vĩnh viễn chủ đề (Admin)
+   *
+   * @route Delete /api/admin/topics/:id/force
+   * @access Admin only
+   */
+  @Delete(':id/force')
+  @ApiOperation({ summary: 'Xoá vĩnh viễn chủ đề (Admin)' })
+  async forceDelete(@Param('id', new ParseUUIDPipe()) id: string) {
+    await this.topicService.forceDelete(id);
+    return { message: 'Xoá vĩnh viễn chủ đề thành công' };
   }
 }
