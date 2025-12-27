@@ -40,7 +40,7 @@ export class TopicService {
           imageUrl: dto.imageUrl.trim(),
           slug: this.buildSlug(dto.slug, dto.name),
           description: dto.description?.trim(),
-          isActive: dto.isActive ?? true,
+          status: dto.status ?? true,
           createdBy: userId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -55,14 +55,19 @@ export class TopicService {
 
   async findAll(
     pagination: PaginationDto,
-    search?: string,
   ): Promise<{ topics: Topic[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
     const limit = pagination.limit ?? 10;
     const skip = (page - 1) * limit;
 
     const where: Prisma.TopicWhereInput = {
-      ...(search && { name: { contains: search, mode: 'insensitive' } }),
+      ...(pagination.search && {
+        name: { contains: pagination.search, mode: 'insensitive' },
+      }),
+      ...(pagination.status != undefined && { status: pagination.status }),
+      ...(pagination.isDeleted != undefined && {
+        isDeleted: pagination.isDeleted,
+      }),
     };
 
     const [topics, total] = await this.prisma.$transaction([
@@ -142,7 +147,7 @@ export class TopicService {
         !dto.imageUrl &&
         !dto.slug &&
         !dto.description &&
-        dto.isActive === undefined
+        dto.status === undefined
       ) {
         throw new BadRequestException('Không có dữ liệu cập nhật');
       }
@@ -170,8 +175,8 @@ export class TopicService {
         updateData.description = dto.description.trim();
       }
 
-      if (dto.isActive !== undefined) {
-        updateData.isActive = dto.isActive;
+      if (dto.status !== undefined) {
+        updateData.status = dto.status;
       }
 
       const topic = await this.prisma.topic.update({
@@ -212,6 +217,7 @@ export class TopicService {
         where: { id },
         data: {
           deletedAt: new Date().toISOString(),
+          isDeleted: true,
           updatedAt: new Date().toISOString(),
         },
       });
@@ -220,48 +226,10 @@ export class TopicService {
     }
   }
 
-  async findAllDeleted(
-    pagination: PaginationDto,
-    search?: string,
-  ): Promise<{ topics: Topic[]; meta: PaginationMeta }> {
-    const page = pagination.page ?? 1;
-    const limit = pagination.limit ?? 10;
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.TopicWhereInput = {
-      ...(search && { name: { contains: search, mode: 'insensitive' } }),
-      deletedAt: {
-        not: null,
-      },
-    };
-
-    const [topics, total] = await this.prisma.$transaction([
-      this.prisma.topic.findMany({
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        where,
-      }),
-      this.prisma.topic.count({
-        where,
-      }),
-    ]);
-
-    return {
-      topics,
-      meta: {
-        total,
-        page,
-        limit,
-        pageCount: Math.ceil(total / limit) || 1,
-      },
-    };
-  }
-
   async forceDelete(id: string): Promise<void> {
     try {
       const topic = await this.prisma.topic.findFirst({
-        where: { id, deletedAt: { not: null } },
+        where: { id, deletedAt: { not: null }, isDeleted: true },
       });
 
       if (!topic) {
@@ -304,7 +272,11 @@ export class TopicService {
 
       await this.prisma.topic.update({
         where: { id },
-        data: { deletedAt: null, updatedAt: new Date().toISOString() },
+        data: {
+          deletedAt: null,
+          isDeleted: false,
+          updatedAt: new Date().toISOString(),
+        },
       });
     } catch (error) {
       if (
