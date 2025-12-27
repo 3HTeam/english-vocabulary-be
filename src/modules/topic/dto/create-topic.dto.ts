@@ -29,5 +29,5 @@ export class CreateTopicDto {
 
   @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  status?: boolean;
 }

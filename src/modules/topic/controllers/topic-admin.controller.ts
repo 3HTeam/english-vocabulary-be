@@ -69,21 +69,8 @@ export class TopicAdminController {
   @Get()
   @ApiOperation({ summary: 'Danh sách chủ đề (Admin)' })
   async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.topicService.findAll(paginationDto, paginationDto.search);
-  }
-
-  /**
-   * Xem chủ đề đã xoá mềm (Admin)
-   *
-   * @route GET /api/admin/topics/deleted
-   * @access Admin only
-   */
-  @Get('deleted')
-  @ApiOperation({ summary: 'Xem chủ đề đã xoá mềm (Admin)' })
-  async viewDelete(@Query() paginationDto: PaginationDto) {
-    return await this.topicService.findAllDeleted(
+    return await this.topicService.findAll(
       paginationDto,
-      paginationDto.search,
     );
   }
 

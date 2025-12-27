@@ -21,5 +21,5 @@ export class UpdateTopicDto {
 
   @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  status?: boolean;
 }
