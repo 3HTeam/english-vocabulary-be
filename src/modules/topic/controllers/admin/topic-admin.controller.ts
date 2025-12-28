@@ -15,10 +15,10 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
-import { TopicService } from '../topic.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { CreateTopicDto } from '../dto/create-topic.dto';
-import { UpdateTopicDto } from '../dto/update-topic.dto';
+import { TopicService } from '../../topic.service';
+import { CreateTopicDto } from '../../dto/create-topic.dto';
+import { UpdateTopicDto } from '../../dto/update-topic.dto';
 
 type AuthenticatedUser = {
   id: string;
@@ -69,9 +69,7 @@ export class TopicAdminController {
   @Get()
   @ApiOperation({ summary: 'Danh sách chủ đề (Admin)' })
   async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.topicService.findAll(
-      paginationDto,
-    );
+    return await this.topicService.findAll(paginationDto);
   }
 
   /**
