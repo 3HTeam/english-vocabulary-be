@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TopicService } from './topic.service';
-import { TopicAdminController } from './controllers/topic-admin.controller';
+import { TopicAdminController } from './controllers/admin/topic-admin.controller';
 
 @Module({
   controllers: [TopicAdminController],
