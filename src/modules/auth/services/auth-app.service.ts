@@ -68,9 +68,7 @@ export class AuthAppService extends AuthBaseService {
           },
         });
 
-    this.sendVerificationEmail(email, otp).catch((err) => {
-      console.error('Failed to send verification email:', err.message);
-    });
+    await this.sendVerificationEmail(email, otp);
 
     return {
       user: this.sanitizeUser(user),
