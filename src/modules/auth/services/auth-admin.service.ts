@@ -23,38 +23,52 @@ export class AuthAdminService extends AuthBaseService {
   }
 
   /**
-   * Đăng ký Admin (không cần OTP, tự đánh dấu verified)
+   * Đăng ký Admin (yêu cầu xác thực email bằng OTP)
    */
   async register(registerDto: RegisterDto) {
     const { email, password, fullName } = registerDto;
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing) {
+    if (existing && existing.emailVerified) {
       throw new ConflictException('Email này đã được sử dụng');
     }
 
     const hashed = await this.hashPassword(password);
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        password: hashed,
-        fullName,
-        role: 'admin',
-        emailVerified: true,
-        emailVerificationOtp: null,
-        emailVerificationExpires: null,
-      },
-    });
+    const otp = this.generateOtp();
+    const otpHash = await this.hashPassword(otp);
+    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
 
-    const tokens = this.signTokens(user);
+    const user = existing
+      ? await this.prisma.user.update({
+          where: { email },
+          data: {
+            password: hashed,
+            fullName,
+            role: 'admin',
+            emailVerified: false,
+            emailVerificationOtp: otpHash,
+            emailVerificationExpires: expires,
+          },
+        })
+      : await this.prisma.user.create({
+          data: {
+            email,
+            password: hashed,
+            fullName,
+            role: 'admin',
+            emailVerified: false,
+            emailVerificationOtp: otpHash,
+            emailVerificationExpires: expires,
+          },
+        });
+
+    await this.sendVerificationEmail(email, otp);
+
     return {
       user: this.sanitizeUser(user),
-      session: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresAt,
-      },
-      message: 'Tạo admin thành công',
+      session: null,
+      message:
+        'Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.',
     };
   }
 
