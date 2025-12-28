@@ -9,7 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthAppService } from '../services/auth-app.service';
+import { AuthService } from '../auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -37,7 +37,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 @ApiTags('App - Auth')
 @Controller('app/auth')
 export class AuthAppController {
-  constructor(private readonly authAppService: AuthAppService) {}
+  constructor(private readonly authService: AuthService) {}
 
   /**
    * Đăng ký tài khoản mới
@@ -50,8 +50,8 @@ export class AuthAppController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new account' })
   async register(@Body() registerDto: RegisterDto) {
-    const result = await this.authAppService.register(registerDto);
-    return this.authAppService.formatResponse(result);
+    const result = await this.authService.registerApp(registerDto);
+    return this.authService.formatAppResponse(result);
   }
 
   /**
@@ -70,8 +70,8 @@ export class AuthAppController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login' })
   async login(@Body() loginDto: LoginDto) {
-    const result = await this.authAppService.login(loginDto);
-    return this.authAppService.formatResponse(result);
+    const result = await this.authService.login(loginDto);
+    return this.authService.formatAppResponse(result);
   }
 
   /**
@@ -86,8 +86,8 @@ export class AuthAppController {
   @ApiOperation({ summary: 'Get user profile (mobile optimized)' })
   async getProfile(@Headers('authorization') authorization: string) {
     const token = authorization?.replace('Bearer ', '') || '';
-    const result = await this.authAppService.getProfile(token);
-    return this.authAppService.formatResponse(result);
+    const result = await this.authService.getProfile(token);
+    return this.authService.formatAppResponse(result);
   }
 
   /**
@@ -102,7 +102,7 @@ export class AuthAppController {
   @ApiOperation({ summary: 'Get current user info' })
   async getMe(@CurrentUser() user: any) {
     return {
-      user: this.authAppService.formatUser(user),
+      user: this.authService.formatAppUser(user),
       message: 'Lấy thông tin user thành công',
     };
   }
@@ -124,11 +124,7 @@ export class AuthAppController {
     @Headers('authorization') authorization: string,
   ) {
     const token = authorization?.replace('Bearer ', '') || '';
-    return this.authAppService.changePassword(
-      user.id,
-      changePasswordDto,
-      token,
-    );
+    return this.authService.changePassword(user.id, changePasswordDto, token);
   }
 
   /**
@@ -142,7 +138,7 @@ export class AuthAppController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authAppService.refreshToken(refreshTokenDto);
+    return this.authService.refreshToken(refreshTokenDto);
   }
 
   /**
@@ -158,7 +154,7 @@ export class AuthAppController {
   @ApiOperation({ summary: 'Logout' })
   async logout(@Headers('authorization') authorization: string) {
     const token = authorization?.replace('Bearer ', '') || '';
-    return this.authAppService.logout(token);
+    return this.authService.logout(token);
   }
 
   /**
@@ -172,7 +168,7 @@ export class AuthAppController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address' })
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-    const result = await this.authAppService.verifyEmail(verifyEmailDto);
-    return this.authAppService.formatResponse(result);
+    const result = await this.authService.verifyEmail(verifyEmailDto);
+    return this.authService.formatAppResponse(result);
   }
 }

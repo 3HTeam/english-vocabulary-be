@@ -136,6 +136,45 @@ export class AuthService {
     return this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') || '7d';
   }
 
+  /**
+   * Tính thời gian hết hạn của access token (timestamp)
+   */
+  private calculateAccessTokenExpiresAt(): Date {
+    const expiresIn = this.getAccessTokenExpiresIn();
+    let expiresInMs: number;
+
+    if (typeof expiresIn === 'number') {
+      expiresInMs = expiresIn * 1000; // seconds to ms
+    } else {
+      // Parse string like '3600s', '1h', '7d'
+      const match = expiresIn.match(/^(\d+)(s|m|h|d)?$/);
+      if (match) {
+        const value = parseInt(match[1], 10);
+        const unit = match[2] || 's';
+        switch (unit) {
+          case 'd':
+            expiresInMs = value * 24 * 60 * 60 * 1000;
+            break;
+          case 'h':
+            expiresInMs = value * 60 * 60 * 1000;
+            break;
+          case 'm':
+            expiresInMs = value * 60 * 1000;
+            break;
+          case 's':
+          default:
+            expiresInMs = value * 1000;
+            break;
+        }
+      } else {
+        // Default to 1 hour
+        expiresInMs = 3600 * 1000;
+      }
+    }
+
+    return new Date(Date.now() + expiresInMs);
+  }
+
   private signTokens(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessOptions: JwtSignOptions = {
@@ -146,7 +185,8 @@ export class AuthService {
     };
     const accessToken = this.jwtService.sign(payload, accessOptions);
     const refreshToken = this.jwtService.sign(payload, refreshOptions);
-    return { accessToken, refreshToken };
+    const expiresAt = this.calculateAccessTokenExpiresAt();
+    return { accessToken, refreshToken, expiresAt };
   }
 
   private sanitizeUser(user: User) {
@@ -215,37 +255,52 @@ export class AuthService {
   }
 
   /**
-   * Đăng ký Admin (không cần OTP, tự đánh dấu verified)
+   * Đăng ký Admin (yêu cầu xác thực email bằng OTP)
    */
   async registerAdmin(registerDto: RegisterDto) {
     const { email, password, fullName } = registerDto;
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing) {
+    if (existing && existing.emailVerified) {
       throw new ConflictException('Email này đã được sử dụng');
     }
 
     const hashed = await this.hashPassword(password);
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        password: hashed,
-        fullName,
-        role: 'admin',
-        emailVerified: true,
-        emailVerificationOtp: null,
-        emailVerificationExpires: null,
-      },
-    });
+    const otp = this.generateOtp();
+    const otpHash = await this.hashPassword(otp);
+    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
 
-    const tokens = this.signTokens(user);
+    const user = existing
+      ? await this.prisma.user.update({
+          where: { email },
+          data: {
+            password: hashed,
+            fullName,
+            role: 'admin',
+            emailVerified: false,
+            emailVerificationOtp: otpHash,
+            emailVerificationExpires: expires,
+          },
+        })
+      : await this.prisma.user.create({
+          data: {
+            email,
+            password: hashed,
+            fullName,
+            role: 'admin',
+            emailVerified: false,
+            emailVerificationOtp: otpHash,
+            emailVerificationExpires: expires,
+          },
+        });
+
+    await this.sendVerificationEmail(email, otp);
+
     return {
       user: this.sanitizeUser(user),
-      session: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      },
-      message: 'Tạo admin thành công',
+      session: null,
+      message:
+        'Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.',
     };
   }
 
@@ -273,6 +328,7 @@ export class AuthService {
       session: {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
+        expiresAt: tokens.expiresAt,
       },
       message: 'Đăng nhập thành công',
     };
@@ -297,6 +353,7 @@ export class AuthService {
         session: {
           accessToken: tokens.accessToken,
           refreshToken: tokens.refreshToken,
+          expiresAt: tokens.expiresAt,
         },
         message: 'Refresh token thành công',
       };
@@ -401,6 +458,7 @@ export class AuthService {
       session: {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
+        expiresAt: tokens.expiresAt,
       },
       message: 'Xác thực email thành công, tài khoản đã được kích hoạt',
     };
