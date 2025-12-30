@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateVocabularyDto } from './dto/create-vocabulary.dto';
-import { Vocabulary } from '@prisma/client';
+import { Prisma, Vocabulary } from '@prisma/client';
 import { PaginationDto, PaginationMeta } from 'src/common/dto/pagination.dto';
 import { UpdateVocabularyDto } from './dto/update-vocabulary.dto';
 
@@ -27,6 +27,7 @@ export class VocabularyService {
       const duplicatedVocabulary = await this.prisma.vocabulary.findFirst({
         where: {
           word: { equals: normalizedWord, mode: 'insensitive' },
+          deletedAt: null,
         },
       });
 
@@ -38,12 +39,12 @@ export class VocabularyService {
         data: {
           word: normalizedWord,
           meaning: dto.meaning.trim(),
-          phonetic: dto.phonetic.trim(),
-          type: dto.type.trim(),
-          exampleSentence: dto.exampleSentence.trim(),
-          exampleTranslation: dto.exampleTranslation.trim(),
-          imageUrl: dto.imageUrl.trim(),
-          audioUrl: dto.audioUrl.trim(),
+          phonetic: dto.phonetic?.trim(),
+          type: dto.type?.trim(),
+          exampleSentence: dto.exampleSentence?.trim(),
+          exampleTranslation: dto.exampleTranslation?.trim(),
+          imageUrl: dto.imageUrl?.trim(),
+          audioUrl: dto.audioUrl?.trim(),
           synonyms: dto.synonyms,
           antonyms: dto.antonyms,
           topic: {
@@ -65,25 +66,29 @@ export class VocabularyService {
 
   async findAll(
     pagination: PaginationDto,
-    search?: string,
   ): Promise<{ vocabularies: Vocabulary[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
     const limit = pagination.limit ?? 10;
     const skip = (page - 1) * limit;
+
+    const where: Prisma.VocabularyWhereInput = {
+      ...(pagination.search && {
+        word: { contains: pagination.search, mode: 'insensitive' },
+      }),
+      ...(pagination.isDeleted != undefined && {
+        isDeleted: pagination.isDeleted,
+      }),
+    };
 
     const [vocabularies, total] = await this.prisma.$transaction([
       this.prisma.vocabulary.findMany({
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        where: {
-          word: { contains: search, mode: 'insensitive' },
-        },
+        where,
       }),
       this.prisma.vocabulary.count({
-        where: {
-          word: { contains: search, mode: 'insensitive' },
-        },
+        where,
       }),
     ]);
 
@@ -99,8 +104,8 @@ export class VocabularyService {
   }
 
   async findOne(id: string): Promise<Vocabulary> {
-    const vocabulary = await this.prisma.vocabulary.findUnique({
-      where: { id },
+    const vocabulary = await this.prisma.vocabulary.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!vocabulary) {
@@ -194,18 +199,86 @@ export class VocabularyService {
 
   async delete(id: string): Promise<void> {
     try {
-      const existingVocabulary = await this.prisma.vocabulary.findUnique({
+      const vocabulary = await this.prisma.vocabulary.findFirst({
         where: { id },
       });
 
-      if (!existingVocabulary) {
-        throw new NotFoundException('Không tìm thấy từ vựng');
+      if (!vocabulary) {
+        throw new NotFoundException(`Không tìm thấy từ vựng với id ${id}`);
+      }
+
+      await this.prisma.vocabulary.update({
+        where: { id },
+        data: {
+          deletedAt: new Date().toISOString(),
+          isDeleted: true,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async forceDelete(id: string): Promise<void> {
+    try {
+      const vocabulary = await this.prisma.vocabulary.findFirst({
+        where: { id, deletedAt: { not: null }, isDeleted: true },
+      });
+
+      if (!vocabulary) {
+        throw new NotFoundException(`Không tìm thấy từ vựng với id ${id}`);
+      }
+
+      if (vocabulary.deletedAt === null) {
+        throw new BadRequestException(
+          `Từ vựng này cần được xoá mềm trước khi xoá vĩnh viễn`,
+        );
       }
 
       await this.prisma.vocabulary.delete({
         where: { id },
       });
     } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async restoreDelete(id: string): Promise<void> {
+    try {
+      const vocabulary = await this.prisma.vocabulary.findUnique({
+        where: { id },
+      });
+
+      if (!vocabulary) {
+        throw new NotFoundException(`Không tìm thấy từ vựng với id ${id}`);
+      }
+
+      if (!vocabulary.deletedAt) {
+        throw new BadRequestException(`Từ vựng với id ${id} chưa bị xóa`);
+      }
+
+      await this.prisma.vocabulary.update({
+        where: { id },
+        data: {
+          deletedAt: null,
+          isDeleted: false,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
       throw new BadRequestException(error.message);
     }
   }

@@ -2,7 +2,6 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
-  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -10,29 +9,27 @@ import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 import { readFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { resolve } from 'path';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { ChangePasswordDto } from '../dto/change-password.dto';
 import { User } from '@prisma/client';
 
 /**
- * Auth Service
+ * Auth Base Service
  *
+ * Chứa các phương thức dùng chung cho cả Admin và App authentication.
  * JWT + Prisma + bcrypt (stateless).
  */
 @Injectable()
-export class AuthService {
+export class AuthBaseService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    protected readonly prisma: PrismaService,
+    protected readonly jwtService: JwtService,
+    protected readonly configService: ConfigService,
   ) {}
 
-  private async createMailer() {
+  protected async createMailer() {
     const host = this.configService.get<string>('SMTP_HOST');
     const port = Number(this.configService.get<string>('SMTP_PORT') || 587);
     const user = this.configService.get<string>('SMTP_USER');
@@ -53,7 +50,7 @@ export class AuthService {
     });
   }
 
-  private async sendVerificationEmail(email: string, otp: string) {
+  protected async sendVerificationEmail(email: string, otp: string) {
     const transporter = await this.createMailer();
     const from =
       this.configService.get<string>('SMTP_FROM') || 'no-reply@example.com';
@@ -106,7 +103,7 @@ export class AuthService {
     });
   }
 
-  private generateOtp(length = 6): string {
+  protected generateOtp(length = 6): string {
     const digits = '0123456789';
     let otp = '';
     for (let i = 0; i < length; i++) {
@@ -115,31 +112,31 @@ export class AuthService {
     return otp;
   }
 
-  private async hashPassword(password: string): Promise<string> {
+  protected async hashPassword(password: string): Promise<string> {
     const rounds =
       Number(this.configService.get<string>('BCRYPT_SALT_ROUNDS')) || 10;
     return bcrypt.hash(password, rounds);
   }
 
-  private async comparePassword(
+  protected async comparePassword(
     password: string,
     hash: string,
   ): Promise<boolean> {
     return bcrypt.compare(password, hash);
   }
 
-  private getAccessTokenExpiresIn(): string | number {
+  getAccessTokenExpiresIn(): string | number {
     return this.configService.get<string>('JWT_EXPIRES_IN') || '3600s';
   }
 
-  private getRefreshTokenExpiresIn(): string | number {
+  protected getRefreshTokenExpiresIn(): string | number {
     return this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') || '7d';
   }
 
   /**
    * Tính thời gian hết hạn của access token (timestamp)
    */
-  private calculateAccessTokenExpiresAt(): Date {
+  protected calculateAccessTokenExpiresAt(): Date {
     const expiresIn = this.getAccessTokenExpiresIn();
     let expiresInMs: number;
 
@@ -175,7 +172,7 @@ export class AuthService {
     return new Date(Date.now() + expiresInMs);
   }
 
-  private signTokens(user: User) {
+  protected signTokens(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessOptions: JwtSignOptions = {
       expiresIn: this.getAccessTokenExpiresIn() as JwtSignOptions['expiresIn'],
@@ -189,7 +186,7 @@ export class AuthService {
     return { accessToken, refreshToken, expiresAt };
   }
 
-  private sanitizeUser(user: User) {
+  protected sanitizeUser(user: User) {
     if (!user) return null;
     return {
       id: user.id,
@@ -204,107 +201,7 @@ export class AuthService {
     };
   }
 
-  /**
-   * Đăng ký người dùng App (yêu cầu xác thực email bằng OTP)
-   */
-  async registerApp(registerDto: RegisterDto) {
-    const { email, password, fullName } = registerDto;
-
-    const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing && existing.emailVerified) {
-      throw new ConflictException('Email này đã được sử dụng');
-    }
-
-    const hashed = await this.hashPassword(password);
-    const otp = this.generateOtp();
-    const otpHash = await this.hashPassword(otp);
-    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
-
-    const user = existing
-      ? await this.prisma.user.update({
-          where: { email },
-          data: {
-            password: hashed,
-            fullName,
-            role: 'user',
-            emailVerified: false,
-            emailVerificationOtp: otpHash,
-            emailVerificationExpires: expires,
-          },
-        })
-      : await this.prisma.user.create({
-          data: {
-            email,
-            password: hashed,
-            fullName,
-            role: 'user',
-            emailVerified: false,
-            emailVerificationOtp: otpHash,
-            emailVerificationExpires: expires,
-          },
-        });
-
-    await this.sendVerificationEmail(email, otp);
-
-    return {
-      user: this.sanitizeUser(user),
-      session: null,
-      message:
-        'Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.',
-    };
-  }
-
-  /**
-   * Đăng ký Admin (yêu cầu xác thực email bằng OTP)
-   */
-  async registerAdmin(registerDto: RegisterDto) {
-    const { email, password, fullName } = registerDto;
-
-    const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing && existing.emailVerified) {
-      throw new ConflictException('Email này đã được sử dụng');
-    }
-
-    const hashed = await this.hashPassword(password);
-    const otp = this.generateOtp();
-    const otpHash = await this.hashPassword(otp);
-    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
-
-    const user = existing
-      ? await this.prisma.user.update({
-          where: { email },
-          data: {
-            password: hashed,
-            fullName,
-            role: 'admin',
-            emailVerified: false,
-            emailVerificationOtp: otpHash,
-            emailVerificationExpires: expires,
-          },
-        })
-      : await this.prisma.user.create({
-          data: {
-            email,
-            password: hashed,
-            fullName,
-            role: 'admin',
-            emailVerified: false,
-            emailVerificationOtp: otpHash,
-            emailVerificationExpires: expires,
-          },
-        });
-
-    await this.sendVerificationEmail(email, otp);
-
-    return {
-      user: this.sanitizeUser(user),
-      session: null,
-      message:
-        'Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.',
-    };
-  }
-
-  async login(loginDto: LoginDto) {
+  async login(loginDto: { email: string; password: string }) {
     const { email, password } = loginDto;
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -410,122 +307,5 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Token không hợp lệ');
     }
-  }
-
-  async verifyEmail(verifyEmailDto: VerifyEmailDto) {
-    const { email, otp } = verifyEmailDto;
-    if (!email) {
-      throw new BadRequestException('Vui lòng cung cấp email để xác thực');
-    }
-    if (!otp) {
-      throw new BadRequestException('Vui lòng cung cấp OTP để xác thực');
-    }
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      throw new NotFoundException('Không tìm thấy user');
-    }
-    if (user.emailVerified) {
-      return {
-        user: this.sanitizeUser(user),
-        session: null,
-        message: 'Email đã được xác thực',
-      };
-    }
-    if (!user.emailVerificationOtp || !user.emailVerificationExpires) {
-      throw new UnauthorizedException(
-        'OTP không tồn tại, vui lòng đăng ký lại',
-      );
-    }
-    if (user.emailVerificationExpires < new Date()) {
-      throw new UnauthorizedException('OTP đã hết hạn, vui lòng đăng ký lại');
-    }
-    const match = await this.comparePassword(otp, user.emailVerificationOtp);
-    if (!match) {
-      throw new UnauthorizedException('OTP không hợp lệ');
-    }
-
-    const updated = await this.prisma.user.update({
-      where: { email },
-      data: {
-        emailVerified: true,
-        emailVerificationOtp: null,
-        emailVerificationExpires: null,
-      },
-    });
-    const tokens = this.signTokens(updated);
-    return {
-      user: this.sanitizeUser(updated),
-      session: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresAt,
-      },
-      message: 'Xác thực email thành công, tài khoản đã được kích hoạt',
-    };
-  }
-
-  formatAdminResponse(result: any) {
-    if (!result) return result;
-
-    const formatted: any = {
-      message: result.message,
-    };
-
-    if (result.user) {
-      formatted.user = this.formatAdminUser(result.user);
-    }
-
-    if (result.session) {
-      formatted.session = result.session;
-    }
-
-    return formatted;
-  }
-
-  formatAdminUser(user: any) {
-    if (!user) return user;
-
-    return {
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName || '',
-      phone: user.phone || '',
-      avatar: user.avatar || '',
-      role: user.role || '',
-      emailVerified: user.emailVerified ?? false,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-  }
-
-  formatAppResponse(result: any) {
-    if (!result) return result;
-
-    const formatted: any = {
-      message: result.message,
-    };
-
-    if (result.user) {
-      formatted.user = this.formatAppUser(result.user);
-    }
-
-    if (result.session) {
-      formatted.session = result.session;
-    }
-
-    return formatted;
-  }
-
-  formatAppUser(user: any) {
-    if (!user) return user;
-
-    return {
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName || '',
-      phone: user.phone || '',
-      avatar: user.avatar || '',
-      emailVerified: user.emailVerified ?? false,
-    };
   }
 }
