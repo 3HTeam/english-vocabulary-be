@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { VocabularyService } from './vocabulary.service';
@@ -42,10 +43,7 @@ export class VocabularyController {
 
   @Get()
   async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.vocabularyService.findAll(
-      paginationDto,
-      paginationDto.search,
-    );
+    return await this.vocabularyService.findAll(paginationDto);
   }
 
   @Get(':id')
@@ -77,5 +75,23 @@ export class VocabularyController {
   ) {
     await this.vocabularyService.delete(id);
     return { message: 'Xóa từ vựng thành công' };
+  }
+
+  @Delete(':id/force')
+  async forceDelete(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.vocabularyService.forceDelete(id);
+    return { message: 'Xóa vĩnh viễn từ vựng thành công' };
+  }
+
+  @Put(':id/restore')
+  async restoreDelete(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.vocabularyService.restoreDelete(id);
+    return { message: 'Khôi phục từ vựng thành công' };
   }
 }
