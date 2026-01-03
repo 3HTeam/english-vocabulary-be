@@ -48,7 +48,7 @@ export class AuthAppService extends AuthBaseService {
           data: {
             password: hashed,
             fullName,
-            role: 'user',
+            role: 'USER',
             emailVerified: false,
             emailVerificationOtp: otpHash,
             emailVerificationExpires: expires,
@@ -59,7 +59,7 @@ export class AuthAppService extends AuthBaseService {
             email,
             password: hashed,
             fullName,
-            role: 'user',
+            role: 'USER',
             emailVerified: false,
             emailVerificationOtp: otpHash,
             emailVerificationExpires: expires,
