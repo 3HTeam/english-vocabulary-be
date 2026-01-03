@@ -14,57 +14,403 @@ datasource db {
 }
 
 model Topic {
-  id          String       @id @default(uuid())
-  name        String       @unique
-  imageUrl    String       @default("")
-  slug        String       @unique
+  id          String    @id @default(uuid())
+  name        String    @unique
+  imageUrl    String    @default("")
+  slug        String    @unique
   description String?
-  status    Boolean      @default(true)
-  deletedAt DateTime?
-  isDeleted Boolean      @default(false)
+  status      Boolean   @default(true)
+  deletedAt   DateTime?
+  isDeleted   Boolean   @default(false)
   createdBy   String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   vocabularies Vocabulary[]
+  lessons      Lesson[]
 }
 
 model Vocabulary {
-  id        String   @id @default(uuid())
-  topicId   String
-  word      String
-  meaning   String
-  phonetic  String?
-  type      String?
-  exampleSentence   String?
+  id                 String    @id @default(uuid())
+  topicId            String
+  word               String
+  meaning            String
+  phonetic           String?
+  type               String?
+  exampleSentence    String?
   exampleTranslation String?
-  imageUrl  String?
-  audioUrl  String?  
-  synonyms  String[]
-  antonyms  String[]
-  deletedAt  DateTime?
-  isDeleted Boolean  @default(false)
-  createdBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  imageUrl           String?
+  audioUrl           String?
+  synonyms           String[]
+  antonyms           String[]
+  deletedAt          DateTime?
+  isDeleted          Boolean   @default(false)
+  createdBy          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   topic Topic @relation(fields: [topicId], references: [id], onDelete: Restrict)
 
-  @@index([topicId])
+  lessonVocabularies LessonVocabulary[]
+
   @@unique([topicId, word])
+  @@index([topicId])
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  password      String  
-  fullName      String?
-  role          String   @default("user")
-  avatar        String?
-  phone         String?
-  emailVerified Boolean  @default(false)
+  id                       String    @id @default(uuid())
+  email                    String    @unique
+  password                 String
+  fullName                 String?
+  role                     Role      @default(USER)
+  avatar                   String?
+  phone                    String?
+  emailVerified            Boolean   @default(false)
   emailVerificationOtp     String?
   emailVerificationExpires DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  levelId     String?
+  level       Level?  @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  targetLevel String?
+  dailyGoal   Int?    @default(20)
+  streak      Int     @default(0)
+
+  grammarProgresses      UserGrammarProgress[]
+  grammarExerciseAnswers UserGrammarExerciseAnswer[]
+  lessonProgresses       UserLessonProgress[]
+  lessonExerciseAnswers  UserLessonExerciseAnswer[]
+
+  @@index([levelId])
+  @@index([email])
 }
 
+model Level {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  description String?
+  order       Int       @unique
+  status      Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  lessons       Lesson[]
+  users         User[]
+  grammarTopics GrammarTopic[]
+
+  @@index([code])
+  @@index([status])
+}
+
+model GrammarCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  imageUrl    String?
+  description String?
+  status      Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  grammarTopics GrammarTopic[]
+}
+
+model GrammarTopic {
+  id          String     @id @default(uuid())
+  title       String
+  imageUrl    String?
+  description String?
+  slug        String     @unique
+  content     String
+  status      Boolean    @default(true)
+  order       Int        @unique
+  difficulty  Difficulty @default(BEGINNER)
+  isDeleted   Boolean    @default(false)
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  levelId String
+  level   Level  @relation(fields: [levelId], references: [id], onDelete: Restrict)
+
+  grammarCategoryId String
+  grammarCategory   GrammarCategory @relation(fields: [grammarCategoryId], references: [id], onDelete: Restrict)
+
+  grammarExercises  GrammarExercise[]
+  grammarProgresses UserGrammarProgress[]
+  lessonGrammars    LessonGrammar[]
+
+  @@index([grammarCategoryId])
+  @@index([levelId])
+  @@index([status])
+  @@index([difficulty])
+}
+
+model GrammarExercise {
+  id          String       @id @default(uuid())
+  type        ExerciseType
+  question    String
+  answer      String
+  options     Json?
+  explanation String?
+  order       Int          @unique
+  score       Int
+  isDeleted   Boolean      @default(false)
+  deletedAt   DateTime?
+  status      Boolean      @default(true)
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  grammarTopicId String
+  grammarTopic   GrammarTopic @relation(fields: [grammarTopicId], references: [id], onDelete: Restrict)
+
+  userGrammarExerciseAnswers UserGrammarExerciseAnswer[]
+
+  @@index([grammarTopicId])
+  @@index([type])
+}
+
+model UserGrammarProgress {
+  id             String         @id @default(uuid())
+  status         ProgressStatus @default(NOT_STARTED)
+  progress       Int            @default(0)
+  score          Float          @default(0)
+  startAt        DateTime?
+  completedAt    DateTime?
+  lastAccessedAt DateTime       @default(now())
+  totalTimeSpent Int            @default(0)
+  attemptCount   Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  grammarTopicId String
+  grammarTopic   GrammarTopic @relation(fields: [grammarTopicId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, grammarTopicId])
+  @@index([userId])
+  @@index([grammarTopicId])
+  @@index([status])
+}
+
+model UserGrammarExerciseAnswer {
+  id        String   @id @default(uuid())
+  answer    Json
+  isCorrect Boolean  @default(false)
+  timeSpent Int      @default(0)
+  score     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  grammarExerciseId String
+  grammarExercise   GrammarExercise @relation(fields: [grammarExerciseId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([grammarExerciseId])
+  @@index([isCorrect])
+}
+
+model Lesson {
+  id          String          @id @default(uuid())
+  title       String
+  description String?
+  imageUrl    String?
+  slug        String          @unique
+  difficulty  Difficulty      @default(BEGINNER)
+  content     String
+  status      Boolean         @default(true)
+  order       Int             @unique
+  objectives  ObjectiveType[]
+  isDeleted   Boolean         @default(false)
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  levelId String
+  level   Level  @relation(fields: [levelId], references: [id], onDelete: Restrict)
+
+  topicId String
+  topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Restrict)
+
+  lessonVocabularies   LessonVocabulary[]
+  lessonGrammars       LessonGrammar[]
+  lessonExercises      LessonExercise[]
+  userLessonProgresses UserLessonProgress[]
+
+  @@index([levelId])
+  @@index([topicId])
+  @@index([slug])
+  @@index([status])
+  @@index([isDeleted])
+}
+
+model LessonVocabulary {
+  id        String    @id @default(uuid())
+  order     Int       @unique
+  isKey     Boolean   @default(false)
+  note      String?
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+
+  vocabularyId String
+  vocabulary   Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Restrict)
+
+  @@unique([lessonId, vocabularyId])
+  @@index([lessonId])
+  @@index([vocabularyId])
+}
+
+model LessonGrammar {
+  id        String    @id @default(uuid())
+  order     Int       @unique
+  isMain    Boolean   @default(false)
+  note      String?
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+
+  grammarTopicId String
+  grammarTopic   GrammarTopic @relation(fields: [grammarTopicId], references: [id], onDelete: Restrict)
+
+  @@unique([lessonId, grammarTopicId])
+  @@index([lessonId])
+  @@index([grammarTopicId])
+}
+
+model LessonExercise {
+  id          String       @id @default(uuid())
+  title       String
+  type        ExerciseType
+  question    String
+  answer      String
+  options     Json?
+  explanation String?
+  order       Int       @unique
+  score       Int
+  isKey       Boolean      @default(false)
+  note        String?
+  isDeleted   Boolean      @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+
+  userLessonExerciseAnswers UserLessonExerciseAnswer[]
+
+  @@index([lessonId])
+  @@index([type])
+}
+
+model UserLessonProgress {
+  id             String         @id @default(uuid())
+  status         ProgressStatus @default(NOT_STARTED)
+  progress       Int            @default(0)
+  score          Float          @default(0)
+  startAt        DateTime?
+  completedAt    DateTime?
+  lastAccessedAt DateTime       @default(now())
+  totalTimeSpent Int            @default(0)
+  attemptCount   Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+  @@index([status])
+}
+
+model UserLessonExerciseAnswer {
+  id        String   @id @default(uuid())
+  answer    Json
+  isCorrect Boolean  @default(false)
+  timeSpent Int      @default(0)
+  score     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  lessonExerciseId String
+  lessonExercise   LessonExercise @relation(fields: [lessonExerciseId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([lessonExerciseId])
+  @@index([isCorrect])
+}
+
+enum Difficulty {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+  PROFICIENT
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  REVIEWED
+}
+
+enum ExerciseType {
+  MULTIPLE_CHOICE
+  FILL_BLANK
+  MATCHING
+  TRUE_FALSE
+  LISTENING
+  SPEAKING
+  WRITING
+  ORDERING
+}
+
+enum ObjectiveType {
+  LEARN_VOCABULARY
+  LEARN_GRAMMAR
+  PRACTICE_READING
+  PRACTICE_LISTENING
+  PRACTICE_SPEAKING
+  PRACTICE_WRITING
+  IMPROVE_PRONUNCIATION
+}
+
+enum Role {
+  USER
+  ADMIN
+}

@@ -48,7 +48,7 @@ export class AuthAdminService extends AuthBaseService {
           data: {
             password: hashed,
             fullName,
-            role: 'admin',
+            role: 'ADMIN',
             emailVerified: false,
             emailVerificationOtp: otpHash,
             emailVerificationExpires: expires,
@@ -59,7 +59,7 @@ export class AuthAdminService extends AuthBaseService {
             email,
             password: hashed,
             fullName,
-            role: 'admin',
+            role: 'ADMIN',
             emailVerified: false,
             emailVerificationOtp: otpHash,
             emailVerificationExpires: expires,
