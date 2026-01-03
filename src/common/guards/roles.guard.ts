@@ -17,7 +17,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
  *
  * Usage:
  * @UseGuards(AuthGuard, RolesGuard)
- * @Roles('admin')
+ * @Roles('ADMIN')
  * @Get('admin-route')
  */
 @Injectable()

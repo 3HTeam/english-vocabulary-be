@@ -9,7 +9,6 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthAdminService } from '../services/auth-admin.service';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -20,13 +19,8 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
+import { AuthAdminService } from '../services/admin/auth-admin.service';
 
-/**
- * Auth Admin Controller
- *
- * Controller này xử lý authentication cho Admin Panel.
- * Routes: /api/admin/auth
- */
 @ApiTags('Admin - Auth')
 @Controller('admin/auth')
 export class AuthAdminController {
@@ -51,7 +45,7 @@ export class AuthAdminController {
   }
 
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('ADMIN')
   @Get('profile')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get admin profile' })
@@ -62,7 +56,7 @@ export class AuthAdminController {
   }
 
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('ADMIN')
   @Get('me')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current admin info' })
@@ -74,7 +68,7 @@ export class AuthAdminController {
   }
 
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('ADMIN')
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
@@ -101,7 +95,7 @@ export class AuthAdminController {
   }
 
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('ADMIN')
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')

@@ -26,29 +26,16 @@ type AuthenticatedUser = {
   fullName?: string;
 };
 
-/**
- * Admin Topic Controller
- *
- * Controller này xử lý CRUD chủ đề cho Admin Panel.
- * Routes: /api/admin/topics
- * Security: Chỉ dành cho admin
- */
 @ApiTags('Admin - Topics')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(RolesGuard)
-@Roles('admin')
+@Roles('ADMIN')
 @Controller('admin/topics')
 export class TopicAdminController {
   constructor(private readonly topicService: TopicService) {}
 
-  /**
-   * Tạo chủ đề (Admin)
-   *
-   * @route POST /api/admin/topics
-   * @access Admin only
-   */
   @Post()
-  @ApiOperation({ summary: 'Tạo chủ đề (Admin)' })
+  @ApiOperation({ summary: 'Create topic' })
   async create(
     @Body() createTopicDto: CreateTopicDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -60,26 +47,14 @@ export class TopicAdminController {
     };
   }
 
-  /**
-   * Danh sách chủ đề (Admin)
-   *
-   * @route GET /api/admin/topics
-   * @access Admin only
-   */
   @Get()
-  @ApiOperation({ summary: 'Danh sách chủ đề (Admin)' })
+  @ApiOperation({ summary: 'List topics' })
   async findAll(@Query() paginationDto: PaginationDto) {
     return await this.topicService.findAll(paginationDto);
   }
 
-  /**
-   * Chi tiết chủ đề (Admin)
-   *
-   * @route GET /api/admin/topics/:id
-   * @access Admin only
-   */
   @Get(':id')
-  @ApiOperation({ summary: 'Chi tiết chủ đề (Admin)' })
+  @ApiOperation({ summary: 'Get topic by id' })
   async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     const topic = await this.topicService.findOne(id);
     return {
@@ -87,14 +62,8 @@ export class TopicAdminController {
     };
   }
 
-  /**
-   * Cập nhật chủ đề (Admin)
-   *
-   * @route PATCH /api/admin/topics/:id
-   * @access Admin only
-   */
   @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật chủ đề (Admin)' })
+  @ApiOperation({ summary: 'Update topic' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateTopicDto: UpdateTopicDto,
@@ -107,14 +76,8 @@ export class TopicAdminController {
     };
   }
 
-  /**
-   * Xóa chủ đề (Admin)
-   *
-   * @route DELETE /api/admin/topics/:id
-   * @access Admin only
-   */
   @Delete(':id')
-  @ApiOperation({ summary: 'Xóa chủ đề (Admin)' })
+  @ApiOperation({ summary: 'Delete topic' })
   async delete(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.topicService.delete(id);
     return {
@@ -122,27 +85,15 @@ export class TopicAdminController {
     };
   }
 
-  /**
-   * Khôi phục chủ đề (Admin)
-   *
-   * @route PUT /api/admin/topics/:id/restore
-   * @access Admin only
-   */
   @Put(':id/restore')
-  @ApiOperation({ summary: 'Khôi phục chủ đề (Admin)' })
+  @ApiOperation({ summary: 'Restore topic' })
   async restore(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.topicService.restoreDelete(id);
     return { message: 'Khôi phục chủ đề thành công' };
   }
 
-  /**
-   * Xoá vĩnh viễn chủ đề (Admin)
-   *
-   * @route Delete /api/admin/topics/:id/force
-   * @access Admin only
-   */
   @Delete(':id/force')
-  @ApiOperation({ summary: 'Xoá vĩnh viễn chủ đề (Admin)' })
+  @ApiOperation({ summary: 'Force delete topic' })
   async forceDelete(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.topicService.forceDelete(id);
     return { message: 'Xoá vĩnh viễn chủ đề thành công' };

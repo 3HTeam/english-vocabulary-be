@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
+import { LevelModule } from './modules/level/level.module';
 import { TopicModule } from './modules/topic/topic.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UploadModule } from './modules/upload/upload.module';
@@ -17,6 +18,7 @@ import appConfig from './config/app.config';
     }),
     PrismaModule,
     AuthModule,
+    LevelModule,
     TopicModule,
     UploadModule,
     VocabularyModule,

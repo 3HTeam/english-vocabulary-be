@@ -1,3 +1,2 @@
 export { AuthBaseService } from './auth-base.service';
-export { AuthAdminService } from './auth-admin.service';
-export { AuthAppService } from './auth-app.service';
+export { AuthAppService } from './app/auth-app.service';
