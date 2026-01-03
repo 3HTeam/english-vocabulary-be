@@ -9,12 +9,16 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { VocabularyService } from './vocabulary.service';
-import { CreateVocabularyDto } from './dto/create-vocabulary.dto';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { VocabularyService } from '../../vocabulary.service';
+import { CreateVocabularyDto } from '../../dto/create-vocabulary.dto';
+import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { UpdateVocabularyDto } from './dto/update-vocabulary.dto';
+import { UpdateVocabularyDto } from '../../dto/update-vocabulary.dto';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
 type AuthenticatedUser = {
   id: string;
@@ -22,11 +26,16 @@ type AuthenticatedUser = {
   fullName?: string;
 };
 
-@Controller('vocabularies')
-export class VocabularyController {
+@ApiTags('Admin - Vocabulary')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(RolesGuard)
+@Roles('ADMIN')
+@Controller('admin/vocabularies')
+export class VocabularyAdminController {
   constructor(private readonly vocabularyService: VocabularyService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create vocabulary' })
   async create(
     @Body() createVocabularyDto: CreateVocabularyDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -42,17 +51,20 @@ export class VocabularyController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'List vocabularies' })
   async findAll(@Query() paginationDto: PaginationDto) {
     return await this.vocabularyService.findAll(paginationDto);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get vocabulary by id' })
   async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     const vocabulary = await this.vocabularyService.findOne(id);
     return { vocabulary };
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update vocabulary' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateVocabularyDto: UpdateVocabularyDto,
@@ -69,6 +81,7 @@ export class VocabularyController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete vocabulary' })
   async delete(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -78,6 +91,7 @@ export class VocabularyController {
   }
 
   @Delete(':id/force')
+  @ApiOperation({ summary: 'Force delete vocabulary' })
   async forceDelete(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -87,6 +101,7 @@ export class VocabularyController {
   }
 
   @Put(':id/restore')
+  @ApiOperation({ summary: 'Restore deleted vocabulary' })
   async restoreDelete(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthenticatedUser,

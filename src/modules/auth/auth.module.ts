@@ -3,10 +3,11 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { AuthAdminService, AuthAppService, AuthBaseService } from './services';
 import { AuthAdminController } from './controllers/auth-admin.controller';
 import { AuthAppController } from './controllers/auth-app.controller';
 import { AuthGuard } from './guards/auth.guard';
+import { AuthAppService, AuthBaseService } from './services';
+import { AuthAdminService } from './services/admin/auth-admin.service';
 
 @Module({
   imports: [

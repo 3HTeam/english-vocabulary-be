@@ -6,18 +6,18 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { RegisterDto } from '../dto/register.dto';
-import { VerifyEmailDto } from '../dto/verify-email.dto';
-import { AuthBaseService } from './auth-base.service';
+import { RegisterDto } from '../../dto/register.dto';
+import { VerifyEmailDto } from '../../dto/verify-email.dto';
+import { AuthBaseService } from '../auth-base.service';
 
 /**
- * Auth App Service
+ * Auth Admin Service
  *
- * Xử lý authentication cho Mobile App.
- * Kế thừa từ AuthBaseService và thêm các phương thức dành riêng cho App.
+ * Xử lý authentication cho Admin Panel.
+ * Kế thừa từ AuthBaseService và thêm các phương thức dành riêng cho Admin.
  */
 @Injectable()
-export class AuthAppService extends AuthBaseService {
+export class AuthAdminService extends AuthBaseService {
   constructor(
     prisma: PrismaService,
     jwtService: JwtService,
@@ -27,7 +27,7 @@ export class AuthAppService extends AuthBaseService {
   }
 
   /**
-   * Đăng ký người dùng App (yêu cầu xác thực email bằng OTP)
+   * Đăng ký Admin (yêu cầu xác thực email bằng OTP)
    */
   async register(registerDto: RegisterDto) {
     const { email, password, fullName } = registerDto;
@@ -48,7 +48,7 @@ export class AuthAppService extends AuthBaseService {
           data: {
             password: hashed,
             fullName,
-            role: 'USER',
+            role: 'ADMIN',
             emailVerified: false,
             emailVerificationOtp: otpHash,
             emailVerificationExpires: expires,
@@ -59,7 +59,7 @@ export class AuthAppService extends AuthBaseService {
             email,
             password: hashed,
             fullName,
-            role: 'USER',
+            role: 'ADMIN',
             emailVerified: false,
             emailVerificationOtp: otpHash,
             emailVerificationExpires: expires,
@@ -77,7 +77,7 @@ export class AuthAppService extends AuthBaseService {
   }
 
   /**
-   * Xác thực email cho App
+   * Xác thực email cho Admin
    */
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
     const { email, otp } = verifyEmailDto;
@@ -158,7 +158,10 @@ export class AuthAppService extends AuthBaseService {
       fullName: user.fullName || '',
       phone: user.phone || '',
       avatar: user.avatar || '',
+      role: user.role || '',
       emailVerified: user.emailVerified ?? false,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 }

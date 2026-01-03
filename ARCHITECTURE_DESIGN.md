@@ -451,7 +451,7 @@ type AuthenticatedUser = {
 @ApiBearerAuth()
 @Controller('admin/lessons')
 @UseGuards(AuthGuard, RolesGuard) // Both guards required
-@Roles('admin') // Applied to all routes in this controller
+@Roles('ADMIN') // Applied to all routes in this controller
 export class LessonsAdminController {
   constructor(private readonly lessonsService: LessonsService) {}
 

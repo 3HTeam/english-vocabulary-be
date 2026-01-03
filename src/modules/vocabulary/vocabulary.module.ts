@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { VocabularyController } from './vocabulary.controller';
 import { VocabularyService } from './vocabulary.service';
+import { VocabularyAdminController } from './controllers/admin/vocabulary-admin.controller';
 
 @Module({
-  controllers: [VocabularyController],
-  providers: [VocabularyService]
+  controllers: [VocabularyAdminController],
+  providers: [VocabularyService],
 })
 export class VocabularyModule {}

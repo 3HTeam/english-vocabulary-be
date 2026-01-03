@@ -7,7 +7,7 @@ import { SetMetadata } from '@nestjs/common';
  * Must be used together with RolesGuard.
  *
  * @example
- * @Roles('admin')
+ * @Roles('ADMIN')
  * @Get('admin-only')
  * adminOnlyRoute() { ... }
  *

@@ -39,7 +39,7 @@ export class TopicService {
           name: normalizedName,
           imageUrl: dto.imageUrl.trim(),
           slug: this.buildSlug(dto.slug, dto.name),
-          description: dto.description?.trim(),
+          description: dto.description,
           status: dto.status ?? true,
           createdBy: userId,
           createdAt: new Date().toISOString(),
@@ -179,12 +179,12 @@ export class TopicService {
         updateData.status = dto.status;
       }
 
-      const topic = await this.prisma.topic.update({
+      const updatedTopic = await this.prisma.topic.update({
         where: { id },
         data: updateData,
       });
 
-      return topic;
+      return updatedTopic;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
