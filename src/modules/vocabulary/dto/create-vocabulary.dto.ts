@@ -113,12 +113,28 @@ export class CreateVocabularyDto {
   imageUrl?: string;
 
   @ApiPropertyOptional({
-    description: 'URL audio',
-    example: 'https://example.com/apple.mp3',
+    description: 'URL audio giọng Mỹ (US)',
+    example: 'https://example.com/apple-us.mp3',
   })
   @IsString()
   @IsOptional()
-  audioUrl?: string;
+  audioUrlUs?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL audio giọng Anh (UK)',
+    example: 'https://example.com/apple-uk.mp3',
+  })
+  @IsString()
+  @IsOptional()
+  audioUrlUk?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL audio giọng Úc (AU)',
+    example: 'https://example.com/apple-au.mp3',
+  })
+  @IsString()
+  @IsOptional()
+  audioUrlAu?: string;
 
   @ApiProperty({
     description: 'ID của chủ đề',
