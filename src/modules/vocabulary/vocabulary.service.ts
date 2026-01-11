@@ -19,8 +19,8 @@ export class VocabularyService {
         throw new BadRequestException('Từ là bắt buộc');
       }
 
-      if (!dto.meaning || !dto.meaning.trim()) {
-        throw new BadRequestException('Nghĩa là bắt buộc');
+      if (!dto.meanings || dto.meanings.length === 0) {
+        throw new BadRequestException('Phải có ít nhất một nghĩa');
       }
 
       const normalizedWord = dto.word.trim();
@@ -38,23 +38,38 @@ export class VocabularyService {
       const vocabulary = await this.prisma.vocabulary.create({
         data: {
           word: normalizedWord,
-          meaning: dto.meaning.trim(),
+          translation: dto.translation?.trim(),
           phonetic: dto.phonetic?.trim(),
-          type: dto.type?.trim(),
-          exampleSentence: dto.exampleSentence?.trim(),
-          exampleTranslation: dto.exampleTranslation?.trim(),
           imageUrl: dto.imageUrl?.trim(),
           audioUrl: dto.audioUrl?.trim(),
-          synonyms: dto.synonyms,
-          antonyms: dto.antonyms,
           topic: {
             connect: {
               id: dto.topicId,
             },
           },
           createdBy: userId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          meanings: {
+            create: dto.meanings.map((meaning) => ({
+              partOfSpeech: meaning.partOfSpeech.trim(),
+              synonyms: meaning.synonyms ?? [],
+              antonyms: meaning.antonyms ?? [],
+              definitions: {
+                create: meaning.definitions.map((def) => ({
+                  definition: def.definition.trim(),
+                  translation: def.translation?.trim(),
+                  example: def.example?.trim(),
+                  exampleTranslation: def.exampleTranslation?.trim(),
+                })),
+              },
+            })),
+          },
+        },
+        include: {
+          meanings: {
+            include: {
+              definitions: true,
+            },
+          },
         },
       });
 
@@ -131,15 +146,11 @@ export class VocabularyService {
 
       if (
         !dto.word &&
-        !dto.meaning &&
+        !dto.translation &&
+        !dto.meanings &&
         !dto.phonetic &&
-        !dto.type &&
-        !dto.exampleSentence &&
-        !dto.exampleTranslation &&
         !dto.imageUrl &&
         !dto.audioUrl &&
-        !dto.synonyms &&
-        !dto.antonyms &&
         !dto.topicId
       ) {
         throw new BadRequestException('Không có dữ liệu cập nhật');
@@ -152,32 +163,17 @@ export class VocabularyService {
       if (dto.word !== undefined) {
         updateData.word = dto.word.trim();
       }
-      if (dto.meaning !== undefined) {
-        updateData.meaning = dto.meaning.trim();
+      if (dto.translation !== undefined) {
+        updateData.translation = dto.translation.trim();
       }
       if (dto.phonetic !== undefined) {
         updateData.phonetic = dto.phonetic.trim();
-      }
-      if (dto.type !== undefined) {
-        updateData.type = dto.type.trim();
-      }
-      if (dto.exampleSentence !== undefined) {
-        updateData.exampleSentence = dto.exampleSentence.trim();
-      }
-      if (dto.exampleTranslation !== undefined) {
-        updateData.exampleTranslation = dto.exampleTranslation.trim();
       }
       if (dto.imageUrl !== undefined) {
         updateData.imageUrl = dto.imageUrl.trim();
       }
       if (dto.audioUrl !== undefined) {
         updateData.audioUrl = dto.audioUrl.trim();
-      }
-      if (dto.synonyms !== undefined) {
-        updateData.synonyms = dto.synonyms;
-      }
-      if (dto.antonyms !== undefined) {
-        updateData.antonyms = dto.antonyms;
       }
       if (dto.topicId !== undefined) {
         updateData.topic = {

@@ -34,15 +34,10 @@ model Vocabulary {
   id                 String    @id @default(uuid())
   topicId            String
   word               String
-  meaning            String
+  translation        String?
   phonetic           String?
-  type               String?
-  exampleSentence    String?
-  exampleTranslation String?
   imageUrl           String?
   audioUrl           String?
-  synonyms           String[]
-  antonyms           String[]
   deletedAt          DateTime?
   isDeleted          Boolean   @default(false)
   createdBy          String?
@@ -52,9 +47,47 @@ model Vocabulary {
   topic Topic @relation(fields: [topicId], references: [id], onDelete: Restrict)
 
   lessonVocabularies LessonVocabulary[]
+  meanings           Meaning[]
 
   @@unique([topicId, word])
   @@index([topicId])
+}
+
+model Meaning {
+  id           String   @id @default(uuid())
+  vocabularyId String
+  partOfSpeech String
+  synonyms     String[] @default([])
+  antonyms     String[] @default([])
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  definitions Definition[]
+
+  @@index([vocabularyId])
+}
+
+model Definition {
+  id String @id @default(uuid())
+
+  definition         String
+  translation        String?
+  example            String?
+  exampleTranslation String?
+  isDeleted          Boolean   @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  meaningId String
+  meaning   Meaning @relation(fields: [meaningId], references: [id], onDelete: Cascade)
+
+  @@index([meaningId])
 }
 
 model User {
@@ -310,7 +343,7 @@ model LessonExercise {
   answer      String
   options     Json?
   explanation String?
-  order       Int       @unique
+  order       Int          @unique
   score       Int
   isKey       Boolean      @default(false)
   note        String?

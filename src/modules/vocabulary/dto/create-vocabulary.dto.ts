@@ -1,32 +1,31 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  ValidateNested,
+  ArrayMinSize,
 } from 'class-validator';
 
-export class CreateVocabularyDto {
-  @ApiProperty({ description: 'Từ vựng', example: 'apple' })
+export class CreateDefinitionDto {
+  @ApiProperty({
+    description: 'Định nghĩa',
+    example: 'a round fruit with red or green skin',
+  })
   @IsString()
   @IsNotEmpty()
-  word: string;
+  definition: string;
 
-  @ApiProperty({ description: 'Nghĩa của từ', example: 'quả táo' })
-  @IsString()
-  @IsNotEmpty()
-  meaning: string;
-
-  @ApiPropertyOptional({ description: 'Phiên âm', example: '/ˈæp.əl/' })
+  @ApiPropertyOptional({
+    description: 'Bản dịch định nghĩa',
+    example: 'một loại trái cây tròn có vỏ đỏ hoặc xanh',
+  })
   @IsString()
   @IsOptional()
-  phonetic?: string;
-
-  @ApiPropertyOptional({ description: 'Loại từ', example: 'noun' })
-  @IsString()
-  @IsOptional()
-  type?: string;
+  translation?: string;
 
   @ApiPropertyOptional({
     description: 'Câu ví dụ',
@@ -34,7 +33,7 @@ export class CreateVocabularyDto {
   })
   @IsString()
   @IsOptional()
-  exampleSentence?: string;
+  example?: string;
 
   @ApiPropertyOptional({
     description: 'Dịch câu ví dụ',
@@ -43,22 +42,13 @@ export class CreateVocabularyDto {
   @IsString()
   @IsOptional()
   exampleTranslation?: string;
+}
 
-  @ApiPropertyOptional({
-    description: 'URL hình ảnh',
-    example: 'https://example.com/apple.jpg',
-  })
+export class CreateMeaningDto {
+  @ApiProperty({ description: 'Loại từ', example: 'noun' })
   @IsString()
-  @IsOptional()
-  imageUrl?: string;
-
-  @ApiPropertyOptional({
-    description: 'URL audio',
-    example: 'https://example.com/apple.mp3',
-  })
-  @IsString()
-  @IsOptional()
-  audioUrl?: string;
+  @IsNotEmpty()
+  partOfSpeech: string;
 
   @ApiPropertyOptional({
     description: 'Danh sách từ đồng nghĩa',
@@ -79,10 +69,66 @@ export class CreateVocabularyDto {
   antonyms?: string[];
 
   @ApiProperty({
+    description: 'Danh sách định nghĩa',
+    type: [CreateDefinitionDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateDefinitionDto)
+  @ArrayMinSize(1)
+  definitions: CreateDefinitionDto[];
+}
+
+export class CreateVocabularyDto {
+  @ApiProperty({ description: 'Từ vựng', example: 'apple' })
+  @IsString()
+  @IsNotEmpty()
+  word: string;
+
+  @ApiPropertyOptional({
+    description: 'Nghĩa của từ',
+    example: 'quả táo',
+  })
+  @IsString()
+  @IsOptional()
+  translation?: string;
+
+  @ApiPropertyOptional({ description: 'Phiên âm', example: '/ˈæp.əl/' })
+  @IsString()
+  @IsOptional()
+  phonetic?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL hình ảnh',
+    example: 'https://example.com/apple.jpg',
+  })
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL audio',
+    example: 'https://example.com/apple.mp3',
+  })
+  @IsString()
+  @IsOptional()
+  audioUrl?: string;
+
+  @ApiProperty({
     description: 'ID của chủ đề',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsUUID()
   @IsNotEmpty()
   topicId: string;
+
+  @ApiProperty({
+    description: 'Danh sách nghĩa của từ',
+    type: [CreateMeaningDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateMeaningDto)
+  @ArrayMinSize(1)
+  meanings: CreateMeaningDto[];
 }
