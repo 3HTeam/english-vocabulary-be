@@ -141,9 +141,8 @@ export class AuthBaseService {
     let expiresInMs: number;
 
     if (typeof expiresIn === 'number') {
-      expiresInMs = expiresIn * 1000; // seconds to ms
+      expiresInMs = expiresIn * 1000;
     } else {
-      // Parse string like '3600s', '1h', '7d'
       const match = expiresIn.match(/^(\d+)(s|m|h|d)?$/);
       if (match) {
         const value = parseInt(match[1], 10);
@@ -164,7 +163,6 @@ export class AuthBaseService {
             break;
         }
       } else {
-        // Default to 1 hour
         expiresInMs = 3600 * 1000;
       }
     }

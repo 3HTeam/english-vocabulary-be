@@ -19,12 +19,6 @@ import { AuthGuard } from '../guards/auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
 
-/**
- * Auth App Controller
- *
- * Controller này xử lý authentication cho Mobile App.
- * Routes: /api/app/auth
- */
 @ApiTags('App - Auth')
 @Controller('app/auth')
 export class AuthAppController {
