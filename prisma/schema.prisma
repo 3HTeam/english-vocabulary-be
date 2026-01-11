@@ -31,18 +31,18 @@ model Topic {
 }
 
 model Vocabulary {
-  id                 String    @id @default(uuid())
-  topicId            String
-  word               String
-  translation        String?
-  phonetic           String?
-  imageUrl           String?
-  audioUrl           String?
-  deletedAt          DateTime?
-  isDeleted          Boolean   @default(false)
-  createdBy          String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  topicId     String
+  word        String
+  translation String?
+  phonetic    String?
+  imageUrl    String?
+  audioUrl    String?
+  deletedAt   DateTime?
+  isDeleted   Boolean   @default(false)
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   topic Topic @relation(fields: [topicId], references: [id], onDelete: Restrict)
 
@@ -54,11 +54,11 @@ model Vocabulary {
 }
 
 model Meaning {
-  id           String   @id @default(uuid())
+  id           String       @id @default(uuid())
   vocabularyId String
-  partOfSpeech String
-  synonyms     String[] @default([])
-  antonyms     String[] @default([])
+  partOfSpeech PartOfSpeech
+  synonyms     String[]     @default([])
+  antonyms     String[]     @default([])
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
@@ -446,4 +446,21 @@ enum ObjectiveType {
 enum Role {
   USER
   ADMIN
+}
+
+enum PartOfSpeech {
+  noun
+  verb
+  adjective
+  adverb
+  pronoun
+  preposition
+  conjunction
+  interjection
+  determiner
+  article
+  numeral
+  phrasal_verb
+  idiom
+  phrase
 }

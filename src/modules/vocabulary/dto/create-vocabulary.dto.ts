@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -9,6 +10,7 @@ import {
   ValidateNested,
   ArrayMinSize,
 } from 'class-validator';
+import { PartOfSpeech } from '@prisma/client';
 
 export class CreateDefinitionDto {
   @ApiProperty({
@@ -45,10 +47,14 @@ export class CreateDefinitionDto {
 }
 
 export class CreateMeaningDto {
-  @ApiProperty({ description: 'Loại từ', example: 'noun' })
-  @IsString()
+  @ApiProperty({
+    description: 'Loại từ',
+    example: 'noun',
+    enum: PartOfSpeech,
+  })
+  @IsEnum(PartOfSpeech)
   @IsNotEmpty()
-  partOfSpeech: string;
+  partOfSpeech: PartOfSpeech;
 
   @ApiPropertyOptional({
     description: 'Danh sách từ đồng nghĩa',

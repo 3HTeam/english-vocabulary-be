@@ -50,7 +50,7 @@ export class VocabularyService {
           createdBy: userId,
           meanings: {
             create: dto.meanings.map((meaning) => ({
-              partOfSpeech: meaning.partOfSpeech.trim(),
+              partOfSpeech: meaning.partOfSpeech,
               synonyms: meaning.synonyms ?? [],
               antonyms: meaning.antonyms ?? [],
               definitions: {
