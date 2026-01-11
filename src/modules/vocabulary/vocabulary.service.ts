@@ -41,7 +41,9 @@ export class VocabularyService {
           translation: dto.translation?.trim(),
           phonetic: dto.phonetic?.trim(),
           imageUrl: dto.imageUrl?.trim(),
-          audioUrl: dto.audioUrl?.trim(),
+          audioUrlUs: dto.audioUrlUs?.trim(),
+          audioUrlUk: dto.audioUrlUk?.trim(),
+          audioUrlAu: dto.audioUrlAu?.trim(),
           topic: {
             connect: {
               id: dto.topicId,
@@ -101,6 +103,13 @@ export class VocabularyService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         where,
+        include: {
+          meanings: {
+            include: {
+              definitions: true,
+            },
+          },
+        },
       }),
       this.prisma.vocabulary.count({
         where,
@@ -121,6 +130,13 @@ export class VocabularyService {
   async findOne(id: string): Promise<Vocabulary> {
     const vocabulary = await this.prisma.vocabulary.findFirst({
       where: { id, deletedAt: null },
+      include: {
+        meanings: {
+          include: {
+            definitions: true,
+          },
+        },
+      },
     });
 
     if (!vocabulary) {
@@ -150,7 +166,9 @@ export class VocabularyService {
         !dto.meanings &&
         !dto.phonetic &&
         !dto.imageUrl &&
-        !dto.audioUrl &&
+        !dto.audioUrlUs &&
+        !dto.audioUrlUk &&
+        !dto.audioUrlAu &&
         !dto.topicId
       ) {
         throw new BadRequestException('Không có dữ liệu cập nhật');
@@ -172,8 +190,14 @@ export class VocabularyService {
       if (dto.imageUrl !== undefined) {
         updateData.imageUrl = dto.imageUrl.trim();
       }
-      if (dto.audioUrl !== undefined) {
-        updateData.audioUrl = dto.audioUrl.trim();
+      if (dto.audioUrlUs !== undefined) {
+        updateData.audioUrlUs = dto.audioUrlUs.trim();
+      }
+      if (dto.audioUrlUk !== undefined) {
+        updateData.audioUrlUk = dto.audioUrlUk.trim();
+      }
+      if (dto.audioUrlAu !== undefined) {
+        updateData.audioUrlAu = dto.audioUrlAu.trim();
       }
       if (dto.topicId !== undefined) {
         updateData.topic = {
@@ -186,6 +210,13 @@ export class VocabularyService {
       const updatedVocabulary = await this.prisma.vocabulary.update({
         where: { id },
         data: updateData,
+        include: {
+          meanings: {
+            include: {
+              definitions: true,
+            },
+          },
+        },
       });
       return updatedVocabulary;
     } catch (error) {

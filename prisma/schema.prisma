@@ -37,7 +37,9 @@ model Vocabulary {
   translation String?
   phonetic    String?
   imageUrl    String?
-  audioUrl    String?
+  audioUrlUs  String?
+  audioUrlUk  String?
+  audioUrlAu  String?
   deletedAt   DateTime?
   isDeleted   Boolean   @default(false)
   createdBy   String?
