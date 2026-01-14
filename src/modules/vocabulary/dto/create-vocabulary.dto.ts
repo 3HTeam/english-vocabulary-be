@@ -136,6 +136,13 @@ export class CreateVocabularyDto {
   @IsOptional()
   audioUrlAu?: string;
 
+  @ApiPropertyOptional({
+    description: 'Trạng thái của từ vựng (mặc định: true)',
+    example: true,
+  })
+  @IsOptional()
+  status?: boolean;
+
   @ApiProperty({
     description: 'ID của chủ đề',
     example: '123e4567-e89b-12d3-a456-426614174000',

@@ -7,7 +7,6 @@ import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
 import { randomUUID } from 'crypto';
 import { Readable } from 'stream';
-import type { Multer } from 'multer';
 
 type UploadResult = {
   publicId: string;
@@ -44,7 +43,7 @@ export class UploadService {
       this.configService.get<string>('CLOUDINARY_UPLOAD_FOLDER') || 'uploads';
   }
 
-  async uploadFile(file?: Multer.File): Promise<UploadResult> {
+  async uploadFile(file?: Express.Multer.File): Promise<UploadResult> {
     if (!file) {
       throw new BadRequestException('File is required');
     }
