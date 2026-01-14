@@ -9,14 +9,24 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { VocabularyService } from '../../vocabulary.service';
 import { CreateVocabularyDto } from '../../dto/create-vocabulary.dto';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { UpdateVocabularyDto } from '../../dto/update-vocabulary.dto';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 
@@ -50,10 +60,61 @@ export class VocabularyAdminController {
     };
   }
 
+  @Post('import-excel')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Import vocabularies from Excel file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'File Excel (.xlsx, .xls) với các cột: word (bắt buộc), translation (bắt buộc), topicId (bắt buộc)',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  async importFromExcel(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (!file) {
+      throw new Error('Vui lòng upload file Excel');
+    }
+
+    const results = await this.vocabularyService.importFromExcel(file, user.id);
+
+    let message = 'Import từ Excel hoàn tất';
+    if (results.failed > 0 && results.success === 0) {
+      message = 'Import thất bại - tất cả từ vựng đều lỗi';
+    } else if (results.failed > 0 && results.success > 0) {
+      message = `Import hoàn tất với ${results.success} thành công, ${results.failed} thất bại`;
+    } else if (results.success > 0) {
+      message = `Import thành công ${results.success} từ vựng`;
+    }
+
+    return {
+      message,
+      results,
+    };
+  }
+
   @Get()
   @ApiOperation({ summary: 'List vocabularies' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.vocabularyService.findAll(paginationDto);
+  @ApiQuery({
+    name: 'topicId',
+    required: false,
+    description: 'Filter by topic ID',
+  })
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+    @Query('topicId') topicId?: string,
+  ) {
+    return await this.vocabularyService.findAll(paginationDto, topicId);
   }
 
   @Get(':id')
