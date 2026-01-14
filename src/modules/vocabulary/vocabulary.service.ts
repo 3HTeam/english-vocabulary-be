@@ -167,6 +167,11 @@ export class VocabularyService {
         orderBy: { createdAt: 'desc' },
         where,
         include: {
+          topic: {
+            select: {
+              name: true,
+            },
+          },
           meanings: {
             include: {
               definitions: true,
@@ -194,6 +199,11 @@ export class VocabularyService {
     const vocabulary = await this.prisma.vocabulary.findFirst({
       where: { id, deletedAt: null },
       include: {
+        topic: {
+          select: {
+            name: true,
+          },
+        },
         meanings: {
           include: {
             definitions: true,

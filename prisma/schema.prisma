@@ -32,7 +32,6 @@ model Topic {
 
 model Vocabulary {
   id          String    @id @default(uuid())
-  topicId     String
   word        String
   translation String?
   phonetic    String?
@@ -47,7 +46,8 @@ model Vocabulary {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  topicId String
+  topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Restrict)
 
   lessonVocabularies LessonVocabulary[]
   meanings           Meaning[]
