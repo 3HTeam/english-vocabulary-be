@@ -128,33 +128,42 @@ export class TranslationService {
     }
 
     try {
-      const combinedText = validTexts
-        .map((t) => t.text)
-        .join(`\n${this.TRANSLATION_DELIMITER}\n`);
+      // Format: [1] text1\n[2] text2\n...
+      const numberedText = validTexts
+        .map((t, i) => `[${i + 1}] ${t.text}`)
+        .join('\n');
 
       const prompt = `Hãy đóng vai một biên dịch viên chuyên nghiệp.
 Nhiệm vụ: Dịch các đoạn văn bản sau sang tiếng Việt một cách tự nhiên, đúng ngữ cảnh.
-Các đoạn văn bản được ngăn cách bởi ký tự "${this.TRANSLATION_DELIMITER}".
+Mỗi đoạn văn bản được đánh số theo format [số].
+
 Yêu cầu quan trọng:
-- Trả về các bản dịch tương ứng, ngăn cách bởi cùng ký tự "${this.TRANSLATION_DELIMITER}"
-- Chỉ trả về văn bản đã dịch, không giải thích
-- Giữ nguyên thứ tự các đoạn
+- Trả về các bản dịch theo ĐÚNG format: [số] bản dịch
+- Giữ nguyên số thứ tự của từng đoạn
+- Chỉ trả về văn bản đã dịch, không giải thích thêm
 
 Văn bản cần dịch:
-${combinedText}`;
+${numberedText}`;
 
       const result = await this.geminiModel.generateContent(prompt);
       const response = await result.response;
-      const translatedCombined = response.text()?.trim() || '';
+      const translatedText = response.text()?.trim() || '';
 
-      const translations = translatedCombined
-        .split(this.TRANSLATION_DELIMITER)
-        .map((t) => t.trim());
+      // Parse response: [1] translation1\n[2] translation2...
+      const translationMap = new Map<number, string>();
+      const regex = /\[(\d+)\]\s*([^\[]+)/g;
+      let match;
+      while ((match = regex.exec(translatedText)) !== null) {
+        const num = parseInt(match[1], 10);
+        const translation = match[2].trim();
+        translationMap.set(num, translation);
+      }
 
       const resultArray: string[] = texts.map(() => '');
       validTexts.forEach((vt, i) => {
-        if (translations[i]) {
-          resultArray[vt.index] = translations[i];
+        const translation = translationMap.get(i + 1);
+        if (translation) {
+          resultArray[vt.index] = translation;
         }
       });
 
