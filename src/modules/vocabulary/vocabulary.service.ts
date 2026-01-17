@@ -197,7 +197,7 @@ export class VocabularyService {
 
   async findOne(id: string): Promise<Vocabulary> {
     const vocabulary = await this.prisma.vocabulary.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
       include: {
         topic: {
           select: {

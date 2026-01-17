@@ -95,7 +95,7 @@ export class TopicService {
 
   async findOne(id: string): Promise<Topic> {
     const topic = await this.prisma.topic.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!topic) {
