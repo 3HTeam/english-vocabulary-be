@@ -116,7 +116,7 @@ export class VocabularyAdminController {
     return { vocabulary };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update vocabulary' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -153,7 +153,7 @@ export class VocabularyAdminController {
     return { message: 'Xóa vĩnh viễn từ vựng thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted vocabulary' })
   async restoreDelete(
     @Param('id', new ParseUUIDPipe()) id: string,

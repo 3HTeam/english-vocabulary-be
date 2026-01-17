@@ -51,7 +51,7 @@ export class LessonVocabularyAdminController {
     return { lessonVocabulary };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update lesson vocabulary' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -78,7 +78,7 @@ export class LessonVocabularyAdminController {
     return { message: 'Xóa vĩnh viễn thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted lesson vocabulary' })
   async restoreDelete(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.lessonVocabularyAdminService.restoreDelete(id);

@@ -62,7 +62,7 @@ export class GrammarExerciseAdminController {
     return { grammarExercise };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update grammar exercise' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -89,7 +89,7 @@ export class GrammarExerciseAdminController {
     return { message: 'Xóa vĩnh viễn bài tập ngữ pháp thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted grammar exercise' })
   async restoreDelete(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.grammarExerciseAdminService.restoreDelete(id);

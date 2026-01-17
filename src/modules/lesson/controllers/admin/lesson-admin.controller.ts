@@ -57,7 +57,7 @@ export class LessonAdminController {
     return { lesson };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update lesson' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -81,7 +81,7 @@ export class LessonAdminController {
     return { message: 'Xóa vĩnh viễn bài học thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted lesson' })
   async restoreDelete(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.lessonAdminService.restoreDelete(id);

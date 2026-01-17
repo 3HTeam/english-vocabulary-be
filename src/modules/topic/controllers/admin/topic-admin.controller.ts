@@ -62,7 +62,7 @@ export class TopicAdminController {
     };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update topic' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -85,7 +85,7 @@ export class TopicAdminController {
     };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore topic' })
   async restore(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.topicService.restoreDelete(id);

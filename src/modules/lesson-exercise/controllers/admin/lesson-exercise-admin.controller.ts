@@ -49,7 +49,7 @@ export class LessonExerciseAdminController {
     return { lessonExercise };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update lesson exercise' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -76,7 +76,7 @@ export class LessonExerciseAdminController {
     return { message: 'Xóa vĩnh viễn bài tập thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted lesson exercise' })
   async restoreDelete(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.lessonExerciseAdminService.restoreDelete(id);

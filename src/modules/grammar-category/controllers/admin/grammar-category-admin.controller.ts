@@ -65,7 +65,7 @@ export class GrammarCategoryAdminController {
     return { grammarCategory };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update grammar category' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -102,7 +102,7 @@ export class GrammarCategoryAdminController {
     return { message: 'Xóa vĩnh viễn danh mục ngữ pháp thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted grammar category' })
   async restoreDelete(
     @Param('id', new ParseUUIDPipe()) id: string,

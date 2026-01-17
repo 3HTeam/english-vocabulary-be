@@ -60,7 +60,7 @@ export class LevelAdminController {
     return { level };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update level' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -94,7 +94,7 @@ export class LevelAdminController {
     return { message: 'Xóa vĩnh viễn cấp độ thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted level' })
   async restoreDelete(
     @Param('id', new ParseUUIDPipe()) id: string,

@@ -49,7 +49,7 @@ export class LessonGrammarAdminController {
     return { lessonGrammar };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update lesson grammar' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -73,7 +73,7 @@ export class LessonGrammarAdminController {
     return { message: 'Xóa vĩnh viễn thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted lesson grammar' })
   async restoreDelete(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.lessonGrammarAdminService.restoreDelete(id);

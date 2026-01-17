@@ -65,7 +65,7 @@ export class GrammarTopicAdminController {
     return { grammarTopic };
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update grammar topic' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -102,7 +102,7 @@ export class GrammarTopicAdminController {
     return { message: 'Xóa vĩnh viễn chủ đề ngữ pháp thành công' };
   }
 
-  @Put(':id/restore')
+  @Patch(':id/restore')
   @ApiOperation({ summary: 'Restore deleted grammar topic' })
   async restoreDelete(
     @Param('id', new ParseUUIDPipe()) id: string,
