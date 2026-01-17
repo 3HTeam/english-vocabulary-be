@@ -17,7 +17,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { VocabularyService } from '../../vocabulary.service';
 import { CreateVocabularyDto } from '../../dto/create-vocabulary.dto';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { UpdateVocabularyDto } from '../../dto/update-vocabulary.dto';
 import {
   ApiBearerAuth,
@@ -29,6 +28,7 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import { FilterVocabularyDto } from '../../dto/filter-vocabulary.dto';
 
 type AuthenticatedUser = {
   id: string;
@@ -105,16 +105,8 @@ export class VocabularyAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List vocabularies' })
-  @ApiQuery({
-    name: 'topicId',
-    required: false,
-    description: 'Filter by topic ID',
-  })
-  async findAll(
-    @Query() paginationDto: PaginationDto,
-    @Query('topicId') topicId?: string,
-  ) {
-    return await this.vocabularyService.findAll(paginationDto, topicId);
+  async findAll(@Query() filterDto: FilterVocabularyDto) {
+    return await this.vocabularyService.findAll(filterDto, filterDto.topicId);
   }
 
   @Get(':id')

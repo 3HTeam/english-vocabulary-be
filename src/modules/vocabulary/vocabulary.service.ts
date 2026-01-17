@@ -284,6 +284,46 @@ export class VocabularyService {
         };
       }
 
+      // Handle meanings update: delete old meanings and create new ones
+      if (dto.meanings && dto.meanings.length > 0) {
+        // Get all existing meaning IDs for this vocabulary
+        const existingMeanings = await this.prisma.meaning.findMany({
+          where: { vocabularyId: id },
+          select: { id: true },
+        });
+
+        // Delete all definitions for existing meanings
+        await this.prisma.definition.deleteMany({
+          where: {
+            meaningId: {
+              in: existingMeanings.map((m) => m.id),
+            },
+          },
+        });
+
+        // Delete all existing meanings
+        await this.prisma.meaning.deleteMany({
+          where: { vocabularyId: id },
+        });
+
+        // Create new meanings with definitions
+        updateData.meanings = {
+          create: dto.meanings.map((meaning) => ({
+            partOfSpeech: meaning.partOfSpeech,
+            synonyms: meaning.synonyms ?? [],
+            antonyms: meaning.antonyms ?? [],
+            definitions: {
+              create: meaning.definitions.map((def) => ({
+                definition: def.definition.trim(),
+                translation: def.translation?.trim() || '',
+                example: def.example?.trim() || '',
+                exampleTranslation: def.exampleTranslation?.trim() || '',
+              })),
+            },
+          })),
+        };
+      }
+
       const updatedVocabulary = await this.prisma.vocabulary.update({
         where: { id },
         data: updateData,
@@ -295,6 +335,7 @@ export class VocabularyService {
           },
         },
       });
+
       return updatedVocabulary;
     } catch (error) {
       throw new BadRequestException(error.message);
