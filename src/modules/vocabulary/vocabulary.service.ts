@@ -582,7 +582,6 @@ export class VocabularyService {
     try {
       const accessKey = this.configService.get<string>('UNSPLASH_ACCESS_KEY');
       if (!accessKey) {
-        console.log('[Unsplash] No access key configured');
         return '';
       }
 
@@ -600,9 +599,6 @@ export class VocabularyService {
       );
 
       const imageUrl = response.data?.results?.[0]?.urls?.regular || '';
-      console.log(
-        `[Unsplash] Word: ${word}, Image found: ${imageUrl ? 'Yes' : 'No'}`,
-      );
 
       return imageUrl;
     } catch (error) {
