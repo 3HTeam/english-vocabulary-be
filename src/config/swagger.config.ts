@@ -9,6 +9,7 @@ export async function setupSwagger(app: INestApplication): Promise<void> {
     configService.get<string>('swagger.enabled') === 'true';
 
   if (!isSwaggerEnabled) {
+    logger.warn('Swagger is disabled. Set SWAGGER_ENABLED=true to enable.');
     return;
   }
 

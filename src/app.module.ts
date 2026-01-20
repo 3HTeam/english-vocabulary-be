@@ -15,12 +15,13 @@ import { UploadModule } from './modules/upload/upload.module';
 import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
 import databaseConfig from './config/database.config';
 import appConfig from './config/app.config';
+import swaggerConfig from './config/swagger-env.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, appConfig],
+      load: [databaseConfig, appConfig, swaggerConfig],
       envFilePath: ['.env.local', '.env'],
     }),
     PrismaModule,
