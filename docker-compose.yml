@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    # Build image từ Dockerfile ở thư mục hiện tại
+    build: .
+    
+    # Đặt tên container cho dễ quản lý (thay vì tên ngẫu nhiên)
+    container_name: english-backend
+    
+    # Tự động khởi động lại nếu app bị crash hoặc VPS khởi động lại
+    restart: always
+    
+    # Mở cổng 8000 (Cổng trái là VPS, Cổng phải là trong Container)
+    ports:
+      - "8000:8000"
+    
+    # Đọc toàn bộ biến môi trường từ file .env vào container
+    env_file:
+      - .env
+    
+    # Kết nối vào mạng riêng (tốt cho bảo mật mở rộng sau này)
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
