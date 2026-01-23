@@ -70,7 +70,7 @@ export class GrammarTopicAdminService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
   ): Promise<{ grammarTopics: GrammarTopic[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
@@ -113,7 +113,7 @@ export class GrammarTopicAdminService {
     };
   }
 
-  async findOne(id: string): Promise<GrammarTopic> {
+  async getById(id: string): Promise<GrammarTopic> {
     const grammarTopic = await this.prisma.grammarTopic.findUnique({
       where: { id },
       include: {

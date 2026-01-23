@@ -55,7 +55,7 @@ export class GrammarCategoryAdminService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
   ): Promise<{ grammarCategories: GrammarCategory[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
@@ -94,7 +94,7 @@ export class GrammarCategoryAdminService {
     };
   }
 
-  async findOne(id: string): Promise<GrammarCategory> {
+  async getById(id: string): Promise<GrammarCategory> {
     const grammarCategory = await this.prisma.grammarCategory.findUnique({
       where: { id },
     });

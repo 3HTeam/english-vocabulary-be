@@ -38,14 +38,14 @@ export class LessonGrammarAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List lesson grammars' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.lessonGrammarAdminService.findAll(paginationDto);
+  async getAll(@Query() paginationDto: PaginationDto) {
+    return await this.lessonGrammarAdminService.getAll(paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get lesson grammar by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    const lessonGrammar = await this.lessonGrammarAdminService.findOne(id);
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const lessonGrammar = await this.lessonGrammarAdminService.getById(id);
     return { lessonGrammar };
   }
 

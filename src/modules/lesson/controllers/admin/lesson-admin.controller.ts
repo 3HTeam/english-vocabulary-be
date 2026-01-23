@@ -46,14 +46,14 @@ export class LessonAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List lessons' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.lessonAdminService.findAll(paginationDto);
+  async getAll(@Query() paginationDto: PaginationDto) {
+    return await this.lessonAdminService.getAll(paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get lesson by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    const lesson = await this.lessonAdminService.findOne(id);
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const lesson = await this.lessonAdminService.getById(id);
     return { lesson };
   }
 

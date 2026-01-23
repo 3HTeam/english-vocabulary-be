@@ -49,7 +49,7 @@ export class LevelAdminService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
   ): Promise<{ levels: Level[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
@@ -88,7 +88,7 @@ export class LevelAdminService {
     };
   }
 
-  async findOne(id: string): Promise<Level> {
+  async getById(id: string): Promise<Level> {
     const level = await this.prisma.level.findUnique({
       where: { id },
     });

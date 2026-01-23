@@ -48,7 +48,7 @@ export class GrammarExerciseAdminService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
   ): Promise<{ grammarExercises: GrammarExercise[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
@@ -88,7 +88,7 @@ export class GrammarExerciseAdminService {
     };
   }
 
-  async findOne(id: string): Promise<GrammarExercise> {
+  async getById(id: string): Promise<GrammarExercise> {
     const grammarExercise = await this.prisma.grammarExercise.findUnique({
       where: { id },
       include: { grammarTopic: true },

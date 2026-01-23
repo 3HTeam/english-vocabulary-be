@@ -52,7 +52,7 @@ export class LessonGrammarAdminService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
   ): Promise<{ lessonGrammars: LessonGrammar[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
@@ -90,7 +90,7 @@ export class LessonGrammarAdminService {
     };
   }
 
-  async findOne(id: string): Promise<LessonGrammar> {
+  async getById(id: string): Promise<LessonGrammar> {
     const lessonGrammar = await this.prisma.lessonGrammar.findUnique({
       where: { id },
       include: { lesson: true, grammarTopic: true },

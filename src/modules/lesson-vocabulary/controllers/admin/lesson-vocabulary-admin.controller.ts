@@ -39,15 +39,15 @@ export class LessonVocabularyAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List lesson vocabularies' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.lessonVocabularyAdminService.findAll(paginationDto);
+  async getAll(@Query() paginationDto: PaginationDto) {
+    return await this.lessonVocabularyAdminService.getAll(paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get lesson vocabulary by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
     const lessonVocabulary =
-      await this.lessonVocabularyAdminService.findOne(id);
+      await this.lessonVocabularyAdminService.getById(id);
     return { lessonVocabulary };
   }
 

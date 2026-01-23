@@ -137,7 +137,7 @@ export class VocabularyService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
     topicId?: string,
   ): Promise<{ vocabularies: Vocabulary[]; meta: PaginationMeta }> {
@@ -195,7 +195,7 @@ export class VocabularyService {
     };
   }
 
-  async findOne(id: string): Promise<Vocabulary> {
+  async getById(id: string): Promise<Vocabulary> {
     const vocabulary = await this.prisma.vocabulary.findFirst({
       where: { id },
       include: {

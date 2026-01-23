@@ -38,14 +38,14 @@ export class LessonExerciseAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List lesson exercises' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.lessonExerciseAdminService.findAll(paginationDto);
+  async getAll(@Query() paginationDto: PaginationDto) {
+    return await this.lessonExerciseAdminService.getAll(paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get lesson exercise by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    const lessonExercise = await this.lessonExerciseAdminService.findOne(id);
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const lessonExercise = await this.lessonExerciseAdminService.getById(id);
     return { lessonExercise };
   }
 

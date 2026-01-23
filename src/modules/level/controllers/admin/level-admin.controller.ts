@@ -49,14 +49,14 @@ export class LevelAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List levels' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.levelAdminService.findAll(paginationDto);
+  async getAll(@Query() paginationDto: PaginationDto) {
+    return await this.levelAdminService.getAll(paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get level by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    const level = await this.levelAdminService.findOne(id);
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const level = await this.levelAdminService.getById(id);
     return { level };
   }
 

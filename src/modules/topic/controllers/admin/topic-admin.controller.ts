@@ -49,14 +49,14 @@ export class TopicAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List topics' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.topicService.findAll(paginationDto);
+  async getAll(@Query() paginationDto: PaginationDto) {
+    return await this.topicService.getAll(paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get topic by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    const topic = await this.topicService.findOne(id);
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const topic = await this.topicService.getById(id);
     return {
       topic,
     };
