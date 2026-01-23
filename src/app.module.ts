@@ -16,6 +16,8 @@ import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
 import databaseConfig from './config/database.config';
 import appConfig from './config/app.config';
 import swaggerConfig from './config/swagger-env.config';
+import { UserModule } from './modules/user/user.module';
+import { SettingModule } from './modules/setting/setting.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import swaggerConfig from './config/swagger-env.config';
     TopicModule,
     UploadModule,
     VocabularyModule,
+    UserModule,
+    SettingModule,
   ],
   controllers: [],
   providers: [],

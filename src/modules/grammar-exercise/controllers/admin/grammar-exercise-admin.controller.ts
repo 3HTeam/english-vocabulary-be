@@ -51,14 +51,14 @@ export class GrammarExerciseAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List grammar exercises' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.grammarExerciseAdminService.findAll(paginationDto);
+  async getAll(@Query() paginationDto: PaginationDto) {
+    return await this.grammarExerciseAdminService.getAll(paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get grammar exercise by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    const grammarExercise = await this.grammarExerciseAdminService.findOne(id);
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const grammarExercise = await this.grammarExerciseAdminService.getById(id);
     return { grammarExercise };
   }
 

@@ -54,14 +54,14 @@ export class GrammarTopicAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List grammar topics' })
-  async findAll(@Query() paginationDto: PaginationDto) {
-    return await this.grammarTopicAdminService.findAll(paginationDto);
+  async getAll(@Query() paginationDto: PaginationDto) {
+    return await this.grammarTopicAdminService.getAll(paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get grammar topic by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    const grammarTopic = await this.grammarTopicAdminService.findOne(id);
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const grammarTopic = await this.grammarTopicAdminService.getById(id);
     return { grammarTopic };
   }
 

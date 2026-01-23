@@ -61,7 +61,7 @@ export class LessonAdminService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
   ): Promise<{ lessons: Lesson[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
@@ -102,7 +102,7 @@ export class LessonAdminService {
     };
   }
 
-  async findOne(id: string): Promise<Lesson> {
+  async getById(id: string): Promise<Lesson> {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
       include: {

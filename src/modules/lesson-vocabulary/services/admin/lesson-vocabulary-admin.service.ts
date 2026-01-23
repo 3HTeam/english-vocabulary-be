@@ -52,7 +52,7 @@ export class LessonVocabularyAdminService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
   ): Promise<{ lessonVocabularies: LessonVocabulary[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
@@ -90,7 +90,7 @@ export class LessonVocabularyAdminService {
     };
   }
 
-  async findOne(id: string): Promise<LessonVocabulary> {
+  async getById(id: string): Promise<LessonVocabulary> {
     const lessonVocabulary = await this.prisma.lessonVocabulary.findUnique({
       where: { id },
       include: { lesson: true, vocabulary: true },

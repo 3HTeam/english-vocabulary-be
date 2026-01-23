@@ -53,7 +53,7 @@ export class TopicService {
     }
   }
 
-  async findAll(
+  async getAll(
     pagination: PaginationDto,
   ): Promise<{ topics: Topic[]; meta: PaginationMeta }> {
     const page = pagination.page ?? 1;
@@ -93,7 +93,7 @@ export class TopicService {
     };
   }
 
-  async findOne(id: string): Promise<Topic> {
+  async getById(id: string): Promise<Topic> {
     const topic = await this.prisma.topic.findFirst({
       where: { id },
     });

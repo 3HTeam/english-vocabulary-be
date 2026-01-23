@@ -105,14 +105,14 @@ export class VocabularyAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List vocabularies' })
-  async findAll(@Query() filterDto: FilterVocabularyDto) {
-    return await this.vocabularyService.findAll(filterDto, filterDto.topicId);
+  async getAll(@Query() filterDto: FilterVocabularyDto) {
+    return await this.vocabularyService.getAll(filterDto, filterDto.topicId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get vocabulary by id' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    const vocabulary = await this.vocabularyService.findOne(id);
+  async getById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const vocabulary = await this.vocabularyService.getById(id);
     return { vocabulary };
   }
 
