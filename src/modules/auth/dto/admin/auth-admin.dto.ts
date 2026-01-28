@@ -1,12 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-/**
- * Auth App Response DTO
- *
- * Response DTO cho Mobile App - chỉ bao gồm thông tin cần thiết
- * Không bao gồm các thông tin nhạy cảm hoặc admin-only fields
- */
-export class AuthAppResponseDto {
+export class AuthAdminResponseDto {
   @ApiProperty({ description: 'User ID' })
   id: string;
 
@@ -22,11 +16,20 @@ export class AuthAppResponseDto {
   @ApiProperty({ description: 'Avatar URL', required: false })
   avatar?: string;
 
+  @ApiProperty({ description: 'User role (admin, user, etc.)' })
+  role: string;
+
   @ApiProperty({ description: 'Whether email is verified' })
   emailVerified: boolean;
+
+  @ApiProperty({ description: 'Account creation date' })
+  createdAt: Date;
+
+  @ApiProperty({ description: 'Last update date' })
+  updatedAt: Date;
 }
 
-export class SessionAppResponseDto {
+export class SessionAdminResponseDto {
   @ApiProperty({ description: 'JWT access token' })
   accessToken: string;
 

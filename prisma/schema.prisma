@@ -163,6 +163,66 @@ model Setting {
   updatedAt      DateTime @updatedAt
 }
 
+model Onboarding {
+  id          String    @id @default(uuid())
+  title       String   
+  imageUrl    String?
+  description String?
+  status      Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Module {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  status      Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  popups Popup[]
+  banners Banner[]
+}
+
+model Popup {
+  id          String    @id @default(uuid())
+  title       String    
+  imageUrl    String?
+  description String?
+  status      Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  moduleId    String
+  module      Module    @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+}
+
+model Banner {
+  id          String    @id @default(uuid())
+  title       String    
+  imageUrl    String?
+  description String?
+  status      Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  moduleId    String
+  module      Module    @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+}
+
 model GrammarCategory {
   id          String    @id @default(uuid())
   name        String    @unique
