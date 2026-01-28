@@ -99,7 +99,7 @@ export class UserAdminService {
         }
       }
 
-      const updateData: any = {
+      const updateData: Prisma.UserUpdateInput = {
         updatedAt: new Date().toISOString(),
       };
 
@@ -113,7 +113,7 @@ export class UserAdminService {
         updateData.phone = dto.phone.trim();
       }
       if (dto.levelId !== undefined) {
-        updateData.levelId = dto.levelId;
+        updateData.level = { connect: { id: dto.levelId } };
       }
       if (dto.targetLevel !== undefined) {
         updateData.targetLevel = dto.targetLevel;
