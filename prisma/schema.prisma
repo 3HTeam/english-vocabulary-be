@@ -118,9 +118,34 @@ model User {
   grammarExerciseAnswers UserGrammarExerciseAnswer[]
   lessonProgresses       UserLessonProgress[]
   lessonExerciseAnswers  UserLessonExerciseAnswer[]
+  devices                UserDevice[]
 
   @@index([levelId])
   @@index([email])
+}
+
+model UserDevice {
+  id             String    @id @default(uuid())
+  pushToken      String?   @unique
+  pushTokenType  PushTokenType?
+  deviceName     String?   
+  deviceModel    String?   
+  deviceBrand    String?   
+  platform       Platform  
+  osVersion      String?   
+  appVersion     String?   
+  appBuildNumber String?   
+  isActive       Boolean   @default(true)
+  lastActiveAt   DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([pushToken])
+  @@index([isActive])
 }
 
 model Level {
@@ -546,4 +571,15 @@ enum PartOfSpeech {
   phrasal_verb
   idiom
   phrase
+}
+
+enum Platform {
+  ios
+  android
+}
+
+enum PushTokenType {
+  expo      // Expo Push Token
+  fcm       // Firebase Cloud Messaging Token
+  apns      // Apple Push Notification Service Token
 }
