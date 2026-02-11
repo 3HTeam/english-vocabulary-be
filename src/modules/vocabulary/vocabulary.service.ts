@@ -2,17 +2,17 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateVocabularyDto } from './dto/create-vocabulary.dto';
-import { PartOfSpeech, Prisma, Vocabulary } from '@prisma/client';
-import { PaginationDto, PaginationMeta } from 'src/common/dto/pagination.dto';
-import { UpdateVocabularyDto } from './dto/update-vocabulary.dto';
-import { TranslationService } from './translation.service';
-import { firstValueFrom } from 'rxjs';
-import * as XLSX from 'xlsx';
+} from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "src/prisma/prisma.service";
+import { CreateVocabularyDto } from "./dto/create-vocabulary.dto";
+import { PartOfSpeech, Prisma, Vocabulary } from "@prisma/client";
+import { PaginationDto, PaginationMeta } from "src/common/dto/pagination.dto";
+import { UpdateVocabularyDto } from "./dto/update-vocabulary.dto";
+import { TranslationService } from "./translation.service";
+import { firstValueFrom } from "rxjs";
+import * as XLSX from "xlsx";
 
 interface DictionaryPhonetic {
   text?: string;
@@ -40,7 +40,7 @@ interface DictionaryEntry {
 
 export interface BulkImportResult {
   word: string;
-  status: 'success' | 'failed';
+  status: "success" | "failed";
   vocabularyId?: string;
   error?: string;
 }
@@ -57,23 +57,23 @@ export class VocabularyService {
   async create(dto: CreateVocabularyDto, userId?: string): Promise<Vocabulary> {
     try {
       if (!dto.word || !dto.word.trim()) {
-        throw new BadRequestException('Từ là bắt buộc');
+        throw new BadRequestException("Từ là bắt buộc");
       }
 
       if (!dto.meanings || dto.meanings.length === 0) {
-        throw new BadRequestException('Phải có ít nhất một nghĩa');
+        throw new BadRequestException("Phải có ít nhất một nghĩa");
       }
 
       const normalizedWord = dto.word.trim();
       const duplicatedVocabulary = await this.prisma.vocabulary.findFirst({
         where: {
-          word: { equals: normalizedWord, mode: 'insensitive' },
+          word: { equals: normalizedWord, mode: "insensitive" },
           deletedAt: null,
         },
       });
 
       if (duplicatedVocabulary) {
-        throw new BadRequestException('Từ vựng đã tồn tại');
+        throw new BadRequestException("Từ vựng đã tồn tại");
       }
 
       const vocabulary = await this.prisma.vocabulary.create({
@@ -100,9 +100,9 @@ export class VocabularyService {
               definitions: {
                 create: meaning.definitions.map((def) => ({
                   definition: def.definition.trim(),
-                  translation: def.translation?.trim() || '',
-                  example: def.example?.trim() || '',
-                  exampleTranslation: def.exampleTranslation?.trim() || '',
+                  translation: def.translation?.trim() || "",
+                  example: def.example?.trim() || "",
+                  exampleTranslation: def.exampleTranslation?.trim() || "",
                 })),
               },
             })),
@@ -147,7 +147,7 @@ export class VocabularyService {
 
     const where: Prisma.VocabularyWhereInput = {
       ...(pagination.search && {
-        word: { contains: pagination.search, mode: 'insensitive' },
+        word: { contains: pagination.search, mode: "insensitive" },
       }),
       ...(pagination.isDeleted != undefined && {
         isDeleted: pagination.isDeleted,
@@ -164,7 +164,7 @@ export class VocabularyService {
       this.prisma.vocabulary.findMany({
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         where,
         include: {
           topic: {
@@ -213,7 +213,7 @@ export class VocabularyService {
     });
 
     if (!vocabulary) {
-      throw new NotFoundException('Không tìm thấy từ vựng');
+      throw new NotFoundException("Không tìm thấy từ vựng");
     }
 
     return vocabulary;
@@ -230,7 +230,7 @@ export class VocabularyService {
       });
 
       if (!existingVocabulary) {
-        throw new NotFoundException('Không tìm thấy từ vựng');
+        throw new NotFoundException("Không tìm thấy từ vựng");
       }
 
       if (
@@ -245,7 +245,7 @@ export class VocabularyService {
         !dto.topicId &&
         dto.status === undefined
       ) {
-        throw new BadRequestException('Không có dữ liệu cập nhật');
+        throw new BadRequestException("Không có dữ liệu cập nhật");
       }
 
       const updateData: any = {
@@ -315,9 +315,9 @@ export class VocabularyService {
             definitions: {
               create: meaning.definitions.map((def) => ({
                 definition: def.definition.trim(),
-                translation: def.translation?.trim() || '',
-                example: def.example?.trim() || '',
-                exampleTranslation: def.exampleTranslation?.trim() || '',
+                translation: def.translation?.trim() || "",
+                example: def.example?.trim() || "",
+                exampleTranslation: def.exampleTranslation?.trim() || "",
               })),
             },
           })),
@@ -434,7 +434,7 @@ export class VocabularyService {
   ): Promise<{ success: number; failed: number; details: BulkImportResult[] }> {
     try {
       // Parse Excel file
-      const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+      const workbook = XLSX.read(file.buffer, { type: "buffer" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
 
@@ -446,7 +446,7 @@ export class VocabularyService {
       }>(worksheet);
 
       if (!data || data.length === 0) {
-        throw new BadRequestException('File Excel không có dữ liệu');
+        throw new BadRequestException("File Excel không có dữ liệu");
       }
 
       const results: BulkImportResult[] = [];
@@ -466,8 +466,8 @@ export class VocabularyService {
         if (!topicId) {
           results.push({
             word,
-            status: 'failed',
-            error: 'Thiếu topicId',
+            status: "failed",
+            error: "Thiếu topicId",
           });
           failedCount++;
           continue;
@@ -482,7 +482,7 @@ export class VocabularyService {
           if (!topicExists) {
             results.push({
               word,
-              status: 'failed',
+              status: "failed",
               error: `Topic không tồn tại: ${topicId}`,
             });
             failedCount++;
@@ -492,7 +492,7 @@ export class VocabularyService {
           // Check for duplicate
           const existingVocabulary = await this.prisma.vocabulary.findFirst({
             where: {
-              word: { equals: word, mode: 'insensitive' },
+              word: { equals: word, mode: "insensitive" },
               deletedAt: null,
             },
           });
@@ -500,8 +500,8 @@ export class VocabularyService {
           if (existingVocabulary) {
             results.push({
               word,
-              status: 'failed',
-              error: 'Từ vựng đã tồn tại',
+              status: "failed",
+              error: "Từ vựng đã tồn tại",
             });
             failedCount++;
             continue;
@@ -510,8 +510,8 @@ export class VocabularyService {
           // Fetch dictionary data
           const dictionaryData = await this.fetchDictionaryData(word);
 
-          // Fetch image from Unsplash
-          const imageUrl = await this.fetchUnsplashImage(word);
+          // Fetch image from Freepik
+          const imageUrl = await this.fetchFreepikImage(word);
 
           // Create vocabulary with API data
           const vocabulary = await this.createVocabularyFromApiData(
@@ -525,15 +525,15 @@ export class VocabularyService {
 
           results.push({
             word,
-            status: 'success',
+            status: "success",
             vocabularyId: vocabulary.id,
           });
           successCount++;
         } catch (error) {
           results.push({
             word,
-            status: 'failed',
-            error: error.message || 'Lỗi không xác định',
+            status: "failed",
+            error: error.message || "Lỗi không xác định",
           });
           failedCount++;
         }
@@ -541,7 +541,7 @@ export class VocabularyService {
 
       // Batch translate ALL vocabularies in 1 API call
       const successVocabularyIds = results
-        .filter((r) => r.status === 'success' && r.vocabularyId)
+        .filter((r) => r.status === "success" && r.vocabularyId)
         .map((r) => r.vocabularyId!);
 
       if (successVocabularyIds.length > 0) {
@@ -578,53 +578,59 @@ export class VocabularyService {
     }
   }
 
-  private async fetchUnsplashImage(word: string): Promise<string> {
+  private async fetchFreepikImage(word: string): Promise<string> {
     try {
-      const accessKey = this.configService.get<string>('UNSPLASH_ACCESS_KEY');
-      if (!accessKey) {
-        return '';
+      const baseUrl = this.configService.get<string>("FREEPIK_API_BASE_URL");
+      const apiKey = this.configService.get<string>("FREEPIK_API_KEY");
+      if (!baseUrl || !apiKey) {
+        return "";
       }
 
-      const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(word)}&per_page=1&client_id=${accessKey}`;
+      const url = `${baseUrl}?term=${encodeURIComponent(word)}&limit=1&order=relevance`;
 
       const response = await firstValueFrom(
         this.httpService.get<{
-          results: Array<{
-            urls: {
-              regular: string;
-              small: string;
+          data: Array<{
+            image: {
+              source: {
+                url: string;
+              };
             };
           }>;
-        }>(url),
+        }>(url, {
+          headers: {
+            "x-freepik-api-key": apiKey,
+          },
+        }),
       );
 
-      const imageUrl = response.data?.results?.[0]?.urls?.regular || '';
+      const imageUrl = response.data?.data?.[0]?.image?.source?.url || "";
 
       return imageUrl;
     } catch (error) {
       console.error(
-        `[Unsplash] Error fetching image for "${word}":`,
+        `[Freepik] Error fetching image for "${word}":`,
         error.message,
       );
-      return '';
+      return "";
     }
   }
 
   private mapPartOfSpeech(pos: string): PartOfSpeech {
     const mapping: Record<string, PartOfSpeech> = {
-      noun: 'noun',
-      verb: 'verb',
-      adjective: 'adjective',
-      adverb: 'adverb',
-      pronoun: 'pronoun',
-      preposition: 'preposition',
-      conjunction: 'conjunction',
-      interjection: 'interjection',
-      determiner: 'determiner',
-      article: 'article',
-      numeral: 'numeral',
+      noun: "noun",
+      verb: "verb",
+      adjective: "adjective",
+      adverb: "adverb",
+      pronoun: "pronoun",
+      preposition: "preposition",
+      conjunction: "conjunction",
+      interjection: "interjection",
+      determiner: "determiner",
+      article: "article",
+      numeral: "numeral",
     };
-    return mapping[pos.toLowerCase()] || 'noun';
+    return mapping[pos.toLowerCase()] || "noun";
   }
 
   private async createVocabularyFromApiData(
@@ -638,18 +644,18 @@ export class VocabularyService {
     const phonetic =
       dictionaryData?.phonetic ||
       dictionaryData?.phonetics?.find((p) => p.text)?.text ||
-      '';
+      "";
 
     // Extract audio URLs
     const audioUrlUs =
-      dictionaryData?.phonetics?.find((p) => p.audio?.endsWith('-us.mp3'))
-        ?.audio || '';
+      dictionaryData?.phonetics?.find((p) => p.audio?.endsWith("-us.mp3"))
+        ?.audio || "";
     const audioUrlUk =
-      dictionaryData?.phonetics?.find((p) => p.audio?.endsWith('-uk.mp3'))
-        ?.audio || '';
+      dictionaryData?.phonetics?.find((p) => p.audio?.endsWith("-uk.mp3"))
+        ?.audio || "";
     const audioUrlAu =
-      dictionaryData?.phonetics?.find((p) => p.audio?.endsWith('-au.mp3'))
-        ?.audio || '';
+      dictionaryData?.phonetics?.find((p) => p.audio?.endsWith("-au.mp3"))
+        ?.audio || "";
 
     // Map meanings and definitions
     const meanings =
@@ -661,9 +667,9 @@ export class VocabularyService {
           create:
             m.definitions?.slice(0, 3).map((d) => ({
               definition: d.definition,
-              translation: '',
-              example: d.example || '',
-              exampleTranslation: '',
+              translation: "",
+              example: d.example || "",
+              exampleTranslation: "",
             })) || [],
         },
       })) || [];
@@ -671,16 +677,16 @@ export class VocabularyService {
     // If no meanings from API, create a default one
     if (meanings.length === 0) {
       meanings.push({
-        partOfSpeech: 'noun' as PartOfSpeech,
+        partOfSpeech: "noun" as PartOfSpeech,
         synonyms: [],
         antonyms: [],
         definitions: {
           create: [
             {
               definition: word,
-              translation: translation || '',
-              example: '',
-              exampleTranslation: '',
+              translation: translation || "",
+              example: "",
+              exampleTranslation: "",
             },
           ],
         },
@@ -690,7 +696,7 @@ export class VocabularyService {
     const vocabulary = await this.prisma.vocabulary.create({
       data: {
         word: word.trim(),
-        translation: translation?.trim() || '',
+        translation: translation?.trim() || "",
         phonetic,
         imageUrl,
         audioUrlUs,
