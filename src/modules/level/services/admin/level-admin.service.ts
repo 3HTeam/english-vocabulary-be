@@ -2,12 +2,12 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateLevelDto } from '../../dto/create-level.dto';
-import { Level, Prisma } from '@prisma/client';
-import { UpdateLevelDto } from '../../dto/update-level.dto';
-import { PaginationDto, PaginationMeta } from 'src/common/dto/pagination.dto';
+} from "@nestjs/common";
+import { PrismaService } from "src/prisma/prisma.service";
+import { CreateLevelDto } from "../../dto/create-level.dto";
+import { Level, Prisma } from "@prisma/client";
+import { UpdateLevelDto } from "../../dto/update-level.dto";
+import { PaginationDto, PaginationMeta } from "src/common/dto/pagination.dto";
 
 @Injectable()
 export class LevelAdminService {
@@ -16,25 +16,29 @@ export class LevelAdminService {
   async create(dto: CreateLevelDto, userId?: string): Promise<Level> {
     try {
       if (!dto.name || !dto.name.trim()) {
-        throw new BadRequestException('Tên cấp độ là bắt buộc');
+        throw new BadRequestException("Tên cấp độ là bắt buộc");
       }
 
       const normalizedName = dto.name.trim();
       const duplicatedLevel = await this.prisma.level.findFirst({
         where: {
-          name: { equals: normalizedName, mode: 'insensitive' },
+          name: { equals: normalizedName, mode: "insensitive" },
         },
       });
 
       if (duplicatedLevel) {
-        throw new BadRequestException('Tên cấp độ đã tồn tại');
+        throw new BadRequestException("Tên cấp độ đã tồn tại");
       }
 
       const level = await this.prisma.level.create({
         data: {
           name: normalizedName,
-          code: dto.code,
+          cefrLevel: dto.cefrLevel,
           description: dto.description,
+          toeicScoreMin: dto.toeicScoreMin,
+          toeicScoreMax: dto.toeicScoreMax,
+          ieltsMin: dto.ieltsMin,
+          ieltsMax: dto.ieltsMax,
           order: dto.order ?? 0,
           status: dto.status ?? true,
           createdBy: userId,
@@ -58,7 +62,7 @@ export class LevelAdminService {
 
     const where: Prisma.LevelWhereInput = {
       ...(pagination.search && {
-        name: { contains: pagination.search, mode: 'insensitive' },
+        name: { contains: pagination.search, mode: "insensitive" },
       }),
       ...(pagination.isDeleted != undefined && {
         isDeleted: pagination.isDeleted,
@@ -69,7 +73,7 @@ export class LevelAdminService {
       this.prisma.level.findMany({
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         where,
       }),
       this.prisma.level.count({
@@ -93,7 +97,7 @@ export class LevelAdminService {
       where: { id },
     });
     if (!level) {
-      throw new NotFoundException('Không tìm thấy cấp độ');
+      throw new NotFoundException("Không tìm thấy cấp độ");
     }
     return level;
   }
@@ -108,17 +112,21 @@ export class LevelAdminService {
         where: { id },
       });
       if (!existingLevel) {
-        throw new NotFoundException('Không tìm thấy cấp độ');
+        throw new NotFoundException("Không tìm thấy cấp độ");
       }
 
       if (
         !dto.name &&
-        !dto.code &&
+        !dto.cefrLevel &&
         !dto.description &&
         !dto.order &&
-        !dto.status
+        dto.status === undefined &&
+        dto.toeicScoreMin === undefined &&
+        dto.toeicScoreMax === undefined &&
+        dto.ieltsMin === undefined &&
+        dto.ieltsMax === undefined
       ) {
-        throw new BadRequestException('Không có dữ liệu cập nhật');
+        throw new BadRequestException("Không có dữ liệu cập nhật");
       }
 
       const updateData: any = {
@@ -128,8 +136,8 @@ export class LevelAdminService {
       if (dto.name !== undefined) {
         updateData.name = dto.name.trim();
       }
-      if (dto.code !== undefined) {
-        updateData.code = dto.code.trim();
+      if (dto.cefrLevel !== undefined) {
+        updateData.cefrLevel = dto.cefrLevel.trim();
       }
       if (dto.description !== undefined) {
         updateData.description = dto.description.trim();
@@ -139,6 +147,18 @@ export class LevelAdminService {
       }
       if (dto.status !== undefined) {
         updateData.status = dto.status;
+      }
+      if (dto.toeicScoreMin !== undefined) {
+        updateData.toeicScoreMin = dto.toeicScoreMin;
+      }
+      if (dto.toeicScoreMax !== undefined) {
+        updateData.toeicScoreMax = dto.toeicScoreMax;
+      }
+      if (dto.ieltsMin !== undefined) {
+        updateData.ieltsMin = dto.ieltsMin;
+      }
+      if (dto.ieltsMax !== undefined) {
+        updateData.ieltsMax = dto.ieltsMax;
       }
 
       const updatedLevel = await this.prisma.level.update({
