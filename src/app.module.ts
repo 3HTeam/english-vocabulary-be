@@ -3,12 +3,9 @@ import { ConfigModule } from "@nestjs/config";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BannerModule } from "./modules/banner/banner.module";
 import { GrammarCategoryModule } from "./modules/grammar-category/grammar-category.module";
-import { GrammarExerciseModule } from "./modules/grammar-exercise/grammar-exercise.module";
+import { ExerciseModule } from "./modules/exercise/exercise.module";
+import { ExamModule } from "./modules/exam/exam.module";
 import { GrammarTopicModule } from "./modules/grammar-topic/grammar-topic.module";
-import { LessonModule } from "./modules/lesson/lesson.module";
-import { LessonExerciseModule } from "./modules/lesson-exercise/lesson-exercise.module";
-import { LessonGrammarModule } from "./modules/lesson-grammar/lesson-grammar.module";
-import { LessonVocabularyModule } from "./modules/lesson-vocabulary/lesson-vocabulary.module";
 import { LevelModule } from "./modules/level/level.module";
 import { ModuleModule } from "./modules/module/module.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
@@ -35,12 +32,9 @@ import { DeviceModule } from "./modules/device/device.module";
     AuthModule,
     BannerModule,
     GrammarCategoryModule,
-    GrammarExerciseModule,
+    ExerciseModule,
+    ExamModule,
     GrammarTopicModule,
-    LessonModule,
-    LessonExerciseModule,
-    LessonGrammarModule,
-    LessonVocabularyModule,
     LevelModule,
     ModuleModule,
     OnboardingModule,

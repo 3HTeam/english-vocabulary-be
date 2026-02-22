@@ -1,40 +1,71 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
-  MaxLength,
-} from 'class-validator';
+} from "class-validator";
 
 export class CreateLevelDto {
   @ApiProperty({
-    description: 'Tên cấp độ',
-    example: 'Beginner',
+    description: "Tên cấp độ",
+    example: "Beginner",
   })
   @IsString()
   @IsNotEmpty()
   name: string;
 
   @ApiProperty({
-    description: 'Mã cấp độ',
-    example: 'A1',
+    description: "Cấp độ CEFR",
+    example: "A1",
   })
   @IsString()
   @IsNotEmpty()
-  code: string;
+  cefrLevel: string;
 
   @ApiPropertyOptional({
-    description: 'Mô tả cấp độ',
-    example: 'Cấp độ A1',
+    description: "Mô tả cấp độ",
+    example: "Cấp độ A1",
   })
   @IsString()
   @IsOptional()
   description?: string;
 
   @ApiPropertyOptional({
-    description: 'Thứ tự cấp độ',
+    description: "Điểm TOEIC tối thiểu",
+    example: 120,
+  })
+  @IsNumber()
+  @IsOptional()
+  toeicScoreMin?: number;
+
+  @ApiPropertyOptional({
+    description: "Điểm TOEIC tối đa",
+    example: 224,
+  })
+  @IsNumber()
+  @IsOptional()
+  toeicScoreMax?: number;
+
+  @ApiPropertyOptional({
+    description: "Band IELTS tối thiểu",
+    example: 1.0,
+  })
+  @IsNumber()
+  @IsOptional()
+  ieltsMin?: number;
+
+  @ApiPropertyOptional({
+    description: "Band IELTS tối đa",
+    example: 2.0,
+  })
+  @IsNumber()
+  @IsOptional()
+  ieltsMax?: number;
+
+  @ApiPropertyOptional({
+    description: "Thứ tự cấp độ",
     example: 1,
   })
   @IsNumber()
@@ -42,7 +73,7 @@ export class CreateLevelDto {
   order?: number;
 
   @ApiPropertyOptional({
-    description: 'Trạng thái cấp độ',
+    description: "Trạng thái cấp độ",
     example: true,
   })
   @IsBoolean()

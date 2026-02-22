@@ -14,6 +14,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==================== CONTENT MODELS ====================
+
 model Topic {
   id          String    @id @default(uuid())
   name        String    @unique
@@ -28,7 +30,7 @@ model Topic {
   updatedAt   DateTime  @updatedAt
 
   vocabularies Vocabulary[]
-  lessons      Lesson[]
+  exercises    Exercise[]
 }
 
 model Vocabulary {
@@ -50,8 +52,7 @@ model Vocabulary {
   topicId String
   topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Restrict)
 
-  lessonVocabularies LessonVocabulary[]
-  meanings           Meaning[]
+  meanings Meaning[]
 
   @@unique([topicId, word])
   @@index([topicId])
@@ -94,6 +95,8 @@ model Definition {
   @@index([meaningId])
 }
 
+// ==================== USER & AUTH ====================
+
 model User {
   id                       String    @id @default(uuid())
   email                    String    @unique
@@ -114,34 +117,33 @@ model User {
   dailyGoal   Int?    @default(0)
   streak      Int     @default(0)
 
-  grammarProgresses      UserGrammarProgress[]
-  grammarExerciseAnswers UserGrammarExerciseAnswer[]
-  lessonProgresses       UserLessonProgress[]
-  lessonExerciseAnswers  UserLessonExerciseAnswer[]
-  devices                UserDevice[]
+  grammarProgresses   UserGrammarProgress[]
+  userExerciseAnswers UserExerciseAnswer[]
+  userExams           UserExam[]
+  devices             UserDevice[]
 
   @@index([levelId])
   @@index([email])
 }
 
 model UserDevice {
-  id             String    @id @default(uuid())
-  pushToken      String?   @unique
+  id             String         @id @default(uuid())
+  pushToken      String?        @unique
   pushTokenType  PushTokenType?
-  deviceName     String?   
-  deviceModel    String?   
-  deviceBrand    String?   
-  platform       Platform  
-  osVersion      String?   
-  appVersion     String?   
-  appBuildNumber String?   
-  isActive       Boolean   @default(true)
-  lastActiveAt   DateTime  @default(now())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  deviceName     String?
+  deviceModel    String?
+  deviceBrand    String?
+  platform       Platform
+  osVersion      String?
+  appVersion     String?
+  appBuildNumber String?
+  isActive       Boolean        @default(true)
+  lastActiveAt   DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([pushToken])
@@ -149,25 +151,35 @@ model UserDevice {
 }
 
 model Level {
-  id          String    @id @default(uuid())
-  code        String    @unique
-  name        String
+  id          String  @id @default(uuid())
+  cefrLevel   String  @unique // "A1", "A2", "B1", "B2", "C1", "C2"
+  name        String // "Beginner", "Elementary",...
   description String?
-  order       Int       @unique
-  status      Boolean   @default(true)
-  isDeleted   Boolean   @default(false)
-  deletedAt   DateTime?
-  createdBy   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
 
-  lessons       Lesson[]
+  // Thang điểm tương ứng
+  toeicScoreMin Int?
+  toeicScoreMax Int?
+  ieltsMin      Float?
+  ieltsMax      Float?
+
+  order     Int       @unique
+  status    Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  createdBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
   users         User[]
   grammarTopics GrammarTopic[]
+  exercises     Exercise[]
+  exams         Exam[]
 
-  @@index([code])
+  @@index([cefrLevel])
   @@index([status])
 }
+
+// ==================== APP CONFIG ====================
 
 model Setting {
   id             String   @id @default(uuid())
@@ -190,7 +202,7 @@ model Setting {
 
 model Onboarding {
   id          String    @id @default(uuid())
-  title       String   
+  title       String
   imageUrl    String?
   description String?
   status      Boolean   @default(true)
@@ -212,13 +224,13 @@ model Module {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  popups Popup[]
+  popups  Popup[]
   banners Banner[]
 }
 
 model Popup {
   id          String    @id @default(uuid())
-  title       String    
+  title       String
   imageUrl    String?
   description String?
   status      Boolean   @default(true)
@@ -228,13 +240,13 @@ model Popup {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  moduleId    String
-  module      Module    @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  moduleId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Restrict)
 }
 
 model Banner {
   id          String    @id @default(uuid())
-  title       String    
+  title       String
   imageUrl    String?
   description String?
   status      Boolean   @default(true)
@@ -244,9 +256,11 @@ model Banner {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  moduleId    String
-  module      Module    @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  moduleId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Restrict)
 }
+
+// ==================== GRAMMAR ====================
 
 model GrammarCategory {
   id          String    @id @default(uuid())
@@ -286,9 +300,8 @@ model GrammarTopic {
   grammarCategoryId String
   grammarCategory   GrammarCategory @relation(fields: [grammarCategoryId], references: [id], onDelete: Restrict)
 
-  grammarExercises  GrammarExercise[]
+  exercises         Exercise[]
   grammarProgresses UserGrammarProgress[]
-  lessonGrammars    LessonGrammar[]
 
   @@index([grammarCategoryId])
   @@index([levelId])
@@ -296,30 +309,83 @@ model GrammarTopic {
   @@index([difficulty])
 }
 
-model GrammarExercise {
-  id          String       @id @default(uuid())
+// ==================== EXERCISE (Unified) ====================
+
+model Exercise {
+  id          String           @id @default(uuid())
   type        ExerciseType
+  category    ExerciseCategory
   question    String
-  answer      String
-  options     Json?
   explanation String?
-  order       Int          @unique
-  score       Int
-  isDeleted   Boolean      @default(false)
+  transcript  String? 
+  content     String?
+  mediaUrl    String?
+  mediaType   MediaType?
+  score       Int              @default(10)
+  tags        String[]         @default([])
+  metadata    Json?
+  order       Int              @default(0)
+  status      Boolean          @default(true)
+  isDeleted   Boolean          @default(false)
   deletedAt   DateTime?
-  status      Boolean      @default(true)
   createdBy   String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  grammarTopicId String
-  grammarTopic   GrammarTopic @relation(fields: [grammarTopicId], references: [id], onDelete: Restrict)
+  levelId String
+  level   Level  @relation(fields: [levelId], references: [id], onDelete: Restrict)
 
-  userGrammarExerciseAnswers UserGrammarExerciseAnswer[]
+  grammarTopicId String?
+  grammarTopic   GrammarTopic? @relation(fields: [grammarTopicId], references: [id], onDelete: Restrict)
 
+  topicId String?
+  topic   Topic?  @relation(fields: [topicId], references: [id], onDelete: Restrict)
+
+  exerciseOptions     ExerciseOption[]
+  userExerciseAnswers UserExerciseAnswer[]
+  examQuestions       ExamQuestion[]
+
+  @@index([levelId])
   @@index([grammarTopicId])
+  @@index([topicId])
+  @@index([category])
   @@index([type])
 }
+
+model ExerciseOption {
+  id        String  @id @default(uuid())
+  content   String // Nội dung đáp án
+  isCorrect Boolean @default(false)
+  order     Int     @default(0)
+  metadata  Json? // Data đặc biệt (matchWith cho MATCHING,...)
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([exerciseId])
+}
+
+model UserExerciseAnswer {
+  id        String   @id @default(uuid())
+  answer    Json
+  isCorrect Boolean  @default(false)
+  timeSpent Int      @default(0)
+  score     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([isCorrect])
+}
+
+// ==================== PROGRESS ====================
 
 model UserGrammarProgress {
   id             String         @id @default(uuid())
@@ -346,173 +412,117 @@ model UserGrammarProgress {
   @@index([status])
 }
 
-model UserGrammarExerciseAnswer {
-  id        String   @id @default(uuid())
-  answer    Json
-  isCorrect Boolean  @default(false)
-  timeSpent Int      @default(0)
-  score     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ==================== EXAM (TOEIC / IELTS) ====================
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
-
-  grammarExerciseId String
-  grammarExercise   GrammarExercise @relation(fields: [grammarExerciseId], references: [id], onDelete: Restrict)
-
-  @@index([userId])
-  @@index([grammarExerciseId])
-  @@index([isCorrect])
-}
-
-model Lesson {
-  id          String          @id @default(uuid())
-  title       String
-  description String?
-  imageUrl    String?
-  slug        String          @unique
-  difficulty  Difficulty      @default(BEGINNER)
-  content     String
-  status      Boolean         @default(true)
-  order       Int             @unique
-  objectives  ObjectiveType[]
-  isDeleted   Boolean         @default(false)
-  deletedAt   DateTime?
-  createdBy   String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+model Exam {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?
+  imageUrl       String?
+  examType       ExamType
+  duration       Int // tổng thời gian (phút)
+  totalQuestions Int
+  maxScore       Int // TOEIC: 990, IELTS: 9
+  scoreType      ScoreType // NUMERIC hoặc BAND
+  status         Boolean   @default(true)
+  isDeleted      Boolean   @default(false)
+  deletedAt      DateTime?
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   levelId String
   level   Level  @relation(fields: [levelId], references: [id], onDelete: Restrict)
 
-  topicId String
-  topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Restrict)
-
-  lessonVocabularies   LessonVocabulary[]
-  lessonGrammars       LessonGrammar[]
-  lessonExercises      LessonExercise[]
-  userLessonProgresses UserLessonProgress[]
+  sections  ExamSection[]
+  userExams UserExam[]
 
   @@index([levelId])
-  @@index([topicId])
-  @@index([slug])
+  @@index([examType])
   @@index([status])
-  @@index([isDeleted])
 }
 
-model LessonVocabulary {
-  id        String    @id @default(uuid())
-  order     Int       @unique
-  isKey     Boolean   @default(false)
-  note      String?
-  isDeleted Boolean   @default(false)
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model ExamSection {
+  id             String      @id @default(uuid())
+  name           String
+  sectionType    SectionType
+  order          Int
+  duration       Int?
+  totalQuestions Int
+  maxScore       Int
 
-  lessonId String
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
 
-  vocabularyId String
-  vocabulary   Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Restrict)
+  examQuestions ExamQuestion[]
 
-  @@unique([lessonId, vocabularyId])
-  @@index([lessonId])
-  @@index([vocabularyId])
+  @@unique([examId, order])
+  @@index([examId])
 }
 
-model LessonGrammar {
-  id        String    @id @default(uuid())
-  order     Int       @unique
-  isMain    Boolean   @default(false)
-  note      String?
-  isDeleted Boolean   @default(false)
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model ExamQuestion {
+  id    String @id @default(uuid())
+  order Int
 
-  lessonId String
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  examSectionId String
+  examSection   ExamSection @relation(fields: [examSectionId], references: [id], onDelete: Cascade)
 
-  grammarTopicId String
-  grammarTopic   GrammarTopic @relation(fields: [grammarTopicId], references: [id], onDelete: Restrict)
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
 
-  @@unique([lessonId, grammarTopicId])
-  @@index([lessonId])
-  @@index([grammarTopicId])
+  userExamAnswers UserExamAnswer[]
+
+  @@unique([examSectionId, order])
+  @@index([examSectionId])
+  @@index([exerciseId])
 }
 
-model LessonExercise {
-  id          String       @id @default(uuid())
-  title       String
-  type        ExerciseType
-  question    String
-  answer      String
-  options     Json?
-  explanation String?
-  order       Int          @unique
-  score       Int
-  isKey       Boolean      @default(false)
-  note        String?
-  isDeleted   Boolean      @default(false)
-  deletedAt   DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  lessonId String
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
-
-  userLessonExerciseAnswers UserLessonExerciseAnswer[]
-
-  @@index([lessonId])
-  @@index([type])
-}
-
-model UserLessonProgress {
-  id             String         @id @default(uuid())
-  status         ProgressStatus @default(NOT_STARTED)
-  progress       Int            @default(0)
-  score          Float          @default(0)
-  startAt        DateTime?
-  completedAt    DateTime?
-  lastAccessedAt DateTime       @default(now())
-  totalTimeSpent Int            @default(0)
-  attemptCount   Int            @default(0)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+model UserExam {
+  id              String     @id @default(uuid())
+  status          TestStatus @default(IN_PROGRESS)
+  totalScore      Float      @default(0)
+  maxScore        Float      @default(0)
+  estimatedScore  Int?
+  estimatedBand   Float?
+  levelAssessment String?
+  startedAt       DateTime   @default(now())
+  completedAt     DateTime?
+  timeSpent       Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-  lessonId String
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Restrict)
 
-  @@unique([userId, lessonId])
+  userExamAnswers UserExamAnswer[]
+
   @@index([userId])
-  @@index([lessonId])
+  @@index([examId])
   @@index([status])
 }
 
-model UserLessonExerciseAnswer {
+model UserExamAnswer {
   id        String   @id @default(uuid())
   answer    Json
   isCorrect Boolean  @default(false)
   timeSpent Int      @default(0)
   score     Int      @default(0)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userExamId String
+  userExam   UserExam @relation(fields: [userExamId], references: [id], onDelete: Cascade)
 
-  lessonExerciseId String
-  lessonExercise   LessonExercise @relation(fields: [lessonExerciseId], references: [id], onDelete: Restrict)
+  examQuestionId String
+  examQuestion   ExamQuestion @relation(fields: [examQuestionId], references: [id], onDelete: Restrict)
 
-  @@index([userId])
-  @@index([lessonExerciseId])
-  @@index([isCorrect])
+  @@index([userExamId])
+  @@index([examQuestionId])
 }
+
+// ==================== ENUMS ====================
 
 enum Difficulty {
   BEGINNER
@@ -541,14 +551,12 @@ enum ExerciseType {
   ORDERING
 }
 
-enum ObjectiveType {
-  LEARN_VOCABULARY
-  LEARN_GRAMMAR
-  PRACTICE_READING
-  PRACTICE_LISTENING
-  PRACTICE_SPEAKING
-  PRACTICE_WRITING
-  IMPROVE_PRONUNCIATION
+enum ExerciseCategory {
+  GRAMMAR
+  VOCABULARY
+  READING
+  LISTENING
+  PRONUNCIATION
 }
 
 enum Role {
@@ -579,7 +587,37 @@ enum Platform {
 }
 
 enum PushTokenType {
-  expo      // Expo Push Token
-  fcm       // Firebase Cloud Messaging Token
-  apns      // Apple Push Notification Service Token
+  expo
+  fcm
+  apns
+}
+
+enum ExamType {
+  TOEIC
+  IELTS
+}
+
+enum ScoreType {
+  NUMERIC
+  BAND
+}
+
+enum SectionType {
+  LISTENING
+  READING
+  WRITING
+  SPEAKING
+}
+
+enum MediaType {
+  IMAGE
+  AUDIO
+  VIDEO
+}
+
+enum TestStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+  TIMED_OUT
 }
