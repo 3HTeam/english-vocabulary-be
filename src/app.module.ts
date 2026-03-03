@@ -26,7 +26,8 @@ import { DeviceModule } from "./modules/device/device.module";
     ConfigModule.forRoot({
       isGlobal: true,
       load: [databaseConfig, appConfig, swaggerConfig],
-      envFilePath: [".env.local", ".env"],
+      envFilePath:
+        process.env.NODE_ENV === "production" ? ".env" : ".env.local",
     }),
     PrismaModule,
     AuthModule,

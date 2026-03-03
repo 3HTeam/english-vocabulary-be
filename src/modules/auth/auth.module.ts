@@ -1,25 +1,27 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { PrismaModule } from 'src/prisma/prisma.module';
-import { AuthAdminController } from './controllers/auth-admin.controller';
-import { AuthAppController } from './controllers/auth-app.controller';
-import { AuthGuard } from './guards/auth.guard';
-import { AuthAppService, AuthBaseService } from './services';
-import { AuthAdminService } from './services/admin/auth-admin.service';
+import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
+import { JwtModule, JwtSignOptions } from "@nestjs/jwt";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { HttpModule } from "@nestjs/axios";
+import { PrismaModule } from "src/prisma/prisma.module";
+import { AuthAdminController } from "./controllers/auth-admin.controller";
+import { AuthAppController } from "./controllers/auth-app.controller";
+import { AuthGuard } from "./guards/auth.guard";
+import { AuthAppService, AuthBaseService } from "./services";
+import { AuthAdminService } from "./services/admin/auth-admin.service";
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
+    HttpModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const expiresIn = (config.get<string | number>('JWT_EXPIRES_IN') ||
-          '3600s') as JwtSignOptions['expiresIn'];
+        const expiresIn = (config.get<string | number>("JWT_EXPIRES_IN") ||
+          "3600s") as JwtSignOptions["expiresIn"];
         return {
-          secret: config.get<string>('JWT_SECRET') || 'change_me',
+          secret: config.get<string>("JWT_SECRET"),
           signOptions: {
             expiresIn,
           },

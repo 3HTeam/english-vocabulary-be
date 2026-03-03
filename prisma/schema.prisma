@@ -97,19 +97,27 @@ model Definition {
 
 // ==================== USER & AUTH ====================
 
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  FACEBOOK
+}
+
 model User {
-  id                       String    @id @default(uuid())
-  email                    String    @unique
-  password                 String
+  id                       String       @id @default(uuid())
+  email                    String       @unique
+  password                 String?
   fullName                 String?
-  role                     Role      @default(USER)
+  role                     Role         @default(USER)
   avatar                   String?
   phone                    String?
-  emailVerified            Boolean   @default(false)
+  authProvider             AuthProvider @default(LOCAL)
+  providerId               String?
+  emailVerified            Boolean      @default(false)
   emailVerificationOtp     String?
   emailVerificationExpires DateTime?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
 
   levelId     String?
   level       Level?  @relation(fields: [levelId], references: [id], onDelete: SetNull)
@@ -122,6 +130,7 @@ model User {
   userExams           UserExam[]
   devices             UserDevice[]
 
+  @@unique([authProvider, providerId])
   @@index([levelId])
   @@index([email])
 }
@@ -170,10 +179,10 @@ model Level {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  users         User[]
-  grammarTopics GrammarTopic[]
-  exercises     Exercise[]
-  exams         Exam[]
+  users User[]
+
+  exercises Exercise[]
+  exams     Exam[]
 
   @@index([cefrLevel])
   @@index([status])
@@ -294,9 +303,6 @@ model GrammarTopic {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  levelId String
-  level   Level  @relation(fields: [levelId], references: [id], onDelete: Restrict)
-
   grammarCategoryId String
   grammarCategory   GrammarCategory @relation(fields: [grammarCategoryId], references: [id], onDelete: Restrict)
 
@@ -304,7 +310,6 @@ model GrammarTopic {
   grammarProgresses UserGrammarProgress[]
 
   @@index([grammarCategoryId])
-  @@index([levelId])
   @@index([status])
   @@index([difficulty])
 }
@@ -317,7 +322,7 @@ model Exercise {
   category    ExerciseCategory
   question    String
   explanation String?
-  transcript  String? 
+  transcript  String?
   content     String?
   mediaUrl    String?
   mediaType   MediaType?

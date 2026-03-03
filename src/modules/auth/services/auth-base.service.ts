@@ -3,17 +3,17 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService, JwtSignOptions } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import * as nodemailer from 'nodemailer';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { RefreshTokenDto } from '../dto/refresh-token.dto';
-import { ChangePasswordDto } from '../dto/change-password.dto';
-import { User } from '@prisma/client';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { JwtService, JwtSignOptions } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import * as nodemailer from "nodemailer";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+import { PrismaService } from "src/prisma/prisma.service";
+import { RefreshTokenDto } from "../dto/refresh-token.dto";
+import { ChangePasswordDto } from "../dto/change-password.dto";
+import { User } from "@prisma/client";
 
 /**
  * Auth Base Service
@@ -30,13 +30,13 @@ export class AuthBaseService {
   ) {}
 
   protected async createMailer() {
-    const host = this.configService.get<string>('SMTP_HOST');
-    const port = Number(this.configService.get<string>('SMTP_PORT') || 587);
-    const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
+    const host = this.configService.get<string>("SMTP_HOST");
+    const port = Number(this.configService.get<string>("SMTP_PORT") || 587);
+    const user = this.configService.get<string>("SMTP_USER");
+    const pass = this.configService.get<string>("SMTP_PASS");
     if (!host || !user || !pass) {
       throw new BadRequestException(
-        'SMTP configuration is missing (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)',
+        "SMTP configuration is missing (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS)",
       );
     }
     return nodemailer.createTransport({
@@ -53,39 +53,39 @@ export class AuthBaseService {
   protected async sendVerificationEmail(email: string, otp: string) {
     const transporter = await this.createMailer();
     const from =
-      this.configService.get<string>('SMTP_FROM') || 'no-reply@example.com';
-    const appName = this.configService.get<string>('APP_NAME') || 'Our App';
+      this.configService.get<string>("SMTP_FROM") || "no-reply@example.com";
+    const appName = this.configService.get<string>("APP_NAME") || "Our App";
     const subject = `${appName} - Xác thực tài khoản`;
 
     let html: string | undefined;
     try {
       const srcPath = resolve(
         process.cwd(),
-        'src',
-        'modules',
-        'auth',
-        'templates',
-        'email-verification.html',
+        "src",
+        "modules",
+        "auth",
+        "templates",
+        "email-verification.html",
       );
       const distPath = resolve(
         process.cwd(),
-        'dist',
-        'modules',
-        'auth',
-        'templates',
-        'email-verification.html',
+        "dist",
+        "modules",
+        "auth",
+        "templates",
+        "email-verification.html",
       );
 
       let templatePath: string;
       try {
-        readFileSync(srcPath, 'utf8');
+        readFileSync(srcPath, "utf8");
         templatePath = srcPath;
       } catch {
         templatePath = distPath;
       }
 
-      const raw = readFileSync(templatePath, 'utf8');
-      html = raw.replace('{{ .Token }}', otp);
+      const raw = readFileSync(templatePath, "utf8");
+      html = raw.replace("{{ .Token }}", otp);
     } catch (e) {
       html = `
         <p>Xin chào,</p>
@@ -104,8 +104,8 @@ export class AuthBaseService {
   }
 
   protected generateOtp(length = 6): string {
-    const digits = '0123456789';
-    let otp = '';
+    const digits = "0123456789";
+    let otp = "";
     for (let i = 0; i < length; i++) {
       otp += digits[Math.floor(Math.random() * digits.length)];
     }
@@ -114,7 +114,7 @@ export class AuthBaseService {
 
   protected async hashPassword(password: string): Promise<string> {
     const rounds =
-      Number(this.configService.get<string>('BCRYPT_SALT_ROUNDS')) || 10;
+      Number(this.configService.get<string>("BCRYPT_SALT_ROUNDS")) || 10;
     return bcrypt.hash(password, rounds);
   }
 
@@ -126,11 +126,11 @@ export class AuthBaseService {
   }
 
   getAccessTokenExpiresIn(): string | number {
-    return this.configService.get<string>('JWT_EXPIRES_IN') || '3600s';
+    return this.configService.get<string>("JWT_EXPIRES_IN") || "3600s";
   }
 
   protected getRefreshTokenExpiresIn(): string | number {
-    return this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') || '7d';
+    return this.configService.get<string>("REFRESH_TOKEN_EXPIRES_IN") || "7d";
   }
 
   /**
@@ -140,24 +140,24 @@ export class AuthBaseService {
     const expiresIn = this.getAccessTokenExpiresIn();
     let expiresInMs: number;
 
-    if (typeof expiresIn === 'number') {
+    if (typeof expiresIn === "number") {
       expiresInMs = expiresIn * 1000;
     } else {
       const match = expiresIn.match(/^(\d+)(s|m|h|d)?$/);
       if (match) {
         const value = parseInt(match[1], 10);
-        const unit = match[2] || 's';
+        const unit = match[2] || "s";
         switch (unit) {
-          case 'd':
+          case "d":
             expiresInMs = value * 24 * 60 * 60 * 1000;
             break;
-          case 'h':
+          case "h":
             expiresInMs = value * 60 * 60 * 1000;
             break;
-          case 'm':
+          case "m":
             expiresInMs = value * 60 * 1000;
             break;
-          case 's':
+          case "s":
           default:
             expiresInMs = value * 1000;
             break;
@@ -173,10 +173,10 @@ export class AuthBaseService {
   protected signTokens(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessOptions: JwtSignOptions = {
-      expiresIn: this.getAccessTokenExpiresIn() as JwtSignOptions['expiresIn'],
+      expiresIn: this.getAccessTokenExpiresIn() as JwtSignOptions["expiresIn"],
     };
     const refreshOptions: JwtSignOptions = {
-      expiresIn: this.getRefreshTokenExpiresIn() as JwtSignOptions['expiresIn'],
+      expiresIn: this.getRefreshTokenExpiresIn() as JwtSignOptions["expiresIn"],
     };
     const accessToken = this.jwtService.sign(payload, accessOptions);
     const refreshToken = this.jwtService.sign(payload, refreshOptions);
@@ -189,7 +189,7 @@ export class AuthBaseService {
     return {
       id: user.id,
       email: user.email,
-      fullName: user.fullName || '',
+      fullName: user.fullName || "",
       role: user.role,
       avatar: user.avatar,
       phone: user.phone,
@@ -203,18 +203,18 @@ export class AuthBaseService {
     const { email, password } = loginDto;
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      throw new UnauthorizedException("Email hoặc mật khẩu không đúng");
     }
 
     if (!user.emailVerified) {
       throw new UnauthorizedException(
-        'Tài khoản chưa xác thực email. Vui lòng kiểm tra email để kích hoạt.',
+        "Tài khoản chưa xác thực email. Vui lòng kiểm tra email để kích hoạt.",
       );
     }
 
-    const match = await this.comparePassword(password, user.password);
-    if (!match) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    const match = await this.comparePassword(password, user.password || "");
+    if (!user.password || !match) {
+      throw new UnauthorizedException("Email hoặc mật khẩu không đúng");
     }
 
     const tokens = this.signTokens(user);
@@ -225,12 +225,12 @@ export class AuthBaseService {
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresAt,
       },
-      message: 'Đăng nhập thành công',
+      message: "Đăng nhập thành công",
     };
   }
 
   async logout(_accessToken: string) {
-    return { message: 'Đăng xuất thành công' };
+    return { message: "Đăng xuất thành công" };
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
@@ -241,7 +241,7 @@ export class AuthBaseService {
         where: { id: payload.sub },
       });
       if (!user) {
-        throw new UnauthorizedException('User không tồn tại');
+        throw new UnauthorizedException("User không tồn tại");
       }
       const tokens = this.signTokens(user);
       return {
@@ -250,11 +250,11 @@ export class AuthBaseService {
           refreshToken: tokens.refreshToken,
           expiresAt: tokens.expiresAt,
         },
-        message: 'Refresh token thành công',
+        message: "Refresh token thành công",
       };
     } catch (error) {
       throw new UnauthorizedException(
-        'Refresh token không hợp lệ hoặc đã hết hạn',
+        "Refresh token không hợp lệ hoặc đã hết hạn",
       );
     }
   }
@@ -267,18 +267,23 @@ export class AuthBaseService {
     const { oldPassword, newPassword } = changePasswordDto;
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new NotFoundException('Không tìm thấy user');
+      throw new NotFoundException("Không tìm thấy user");
+    }
+    if (!user.password) {
+      throw new UnauthorizedException(
+        "Tài khoản đăng nhập qua mạng xã hội không có mật khẩu để đổi",
+      );
     }
     const match = await this.comparePassword(oldPassword, user.password);
     if (!match) {
-      throw new UnauthorizedException('Mật khẩu cũ không đúng');
+      throw new UnauthorizedException("Mật khẩu cũ không đúng");
     }
     const hashed = await this.hashPassword(newPassword);
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashed },
     });
-    return { message: 'Đổi mật khẩu thành công' };
+    return { message: "Đổi mật khẩu thành công" };
   }
 
   async getProfile(accessToken: string) {
@@ -288,12 +293,12 @@ export class AuthBaseService {
         where: { id: payload.sub },
       });
       if (!user) {
-        throw new UnauthorizedException('User không tồn tại');
+        throw new UnauthorizedException("User không tồn tại");
       }
       return { user: this.sanitizeUser(user) };
     } catch (error) {
       throw new UnauthorizedException(
-        'Có lỗi xảy ra khi lấy thông tin user: ' + error.message,
+        "Có lỗi xảy ra khi lấy thông tin user: " + error.message,
       );
     }
   }
@@ -303,7 +308,7 @@ export class AuthBaseService {
       const payload = await this.jwtService.verifyAsync(token);
       return payload;
     } catch (error) {
-      throw new UnauthorizedException('Token không hợp lệ');
+      throw new UnauthorizedException("Token không hợp lệ");
     }
   }
 }

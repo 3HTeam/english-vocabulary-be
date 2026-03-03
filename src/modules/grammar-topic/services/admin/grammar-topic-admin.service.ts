@@ -2,12 +2,12 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateGrammarTopicDto } from '../../dto/create-grammar-topic.dto';
-import { GrammarTopic, Prisma } from '@prisma/client';
-import { UpdateGrammarTopicDto } from '../../dto/update-grammar-topic.dto';
-import { PaginationDto, PaginationMeta } from 'src/common/dto/pagination.dto';
+} from "@nestjs/common";
+import { PrismaService } from "src/prisma/prisma.service";
+import { CreateGrammarTopicDto } from "../../dto/create-grammar-topic.dto";
+import { GrammarTopic, Prisma } from "@prisma/client";
+import { UpdateGrammarTopicDto } from "../../dto/update-grammar-topic.dto";
+import { PaginationDto, PaginationMeta } from "src/common/dto/pagination.dto";
 
 @Injectable()
 export class GrammarTopicAdminService {
@@ -19,15 +19,7 @@ export class GrammarTopicAdminService {
   ): Promise<GrammarTopic> {
     try {
       if (!dto.title || !dto.title.trim()) {
-        throw new BadRequestException('Tiêu đề chủ đề ngữ pháp là bắt buộc');
-      }
-
-      // Check if level exists
-      const level = await this.prisma.level.findUnique({
-        where: { id: dto.levelId },
-      });
-      if (!level) {
-        throw new BadRequestException('Level không tồn tại');
+        throw new BadRequestException("Tiêu đề chủ đề ngữ pháp là bắt buộc");
       }
 
       // Check if grammar category exists
@@ -35,7 +27,7 @@ export class GrammarTopicAdminService {
         where: { id: dto.grammarCategoryId },
       });
       if (!grammarCategory) {
-        throw new BadRequestException('Danh mục ngữ pháp không tồn tại');
+        throw new BadRequestException("Danh mục ngữ pháp không tồn tại");
       }
 
       // Check duplicate slug
@@ -43,7 +35,7 @@ export class GrammarTopicAdminService {
         where: { slug: dto.slug },
       });
       if (duplicatedTopic) {
-        throw new BadRequestException('Slug đã tồn tại');
+        throw new BadRequestException("Slug đã tồn tại");
       }
 
       const grammarTopic = await this.prisma.grammarTopic.create({
@@ -51,12 +43,11 @@ export class GrammarTopicAdminService {
           title: dto.title.trim(),
           slug: dto.slug,
           content: dto.content,
-          levelId: dto.levelId,
           grammarCategoryId: dto.grammarCategoryId,
           imageUrl: dto.imageUrl,
           description: dto.description,
           order: dto.order ?? 0,
-          difficulty: dto.difficulty ?? 'BEGINNER',
+          difficulty: dto.difficulty ?? "BEGINNER",
           status: dto.status ?? true,
           createdBy: userId,
           createdAt: new Date().toISOString(),
@@ -79,7 +70,7 @@ export class GrammarTopicAdminService {
 
     const where: Prisma.GrammarTopicWhereInput = {
       ...(pagination.search && {
-        title: { contains: pagination.search, mode: 'insensitive' },
+        title: { contains: pagination.search, mode: "insensitive" },
       }),
       ...(pagination.isDeleted != undefined && {
         isDeleted: pagination.isDeleted,
@@ -90,10 +81,9 @@ export class GrammarTopicAdminService {
       this.prisma.grammarTopic.findMany({
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         where,
         include: {
-          level: true,
           grammarCategory: true,
         },
       }),
@@ -117,12 +107,11 @@ export class GrammarTopicAdminService {
     const grammarTopic = await this.prisma.grammarTopic.findUnique({
       where: { id },
       include: {
-        level: true,
         grammarCategory: true,
       },
     });
     if (!grammarTopic) {
-      throw new NotFoundException('Không tìm thấy chủ đề ngữ pháp');
+      throw new NotFoundException("Không tìm thấy chủ đề ngữ pháp");
     }
     return grammarTopic;
   }
@@ -137,14 +126,13 @@ export class GrammarTopicAdminService {
         where: { id },
       });
       if (!existingTopic) {
-        throw new NotFoundException('Không tìm thấy chủ đề ngữ pháp');
+        throw new NotFoundException("Không tìm thấy chủ đề ngữ pháp");
       }
 
       if (
         !dto.title &&
         !dto.slug &&
         !dto.content &&
-        !dto.levelId &&
         !dto.grammarCategoryId &&
         !dto.imageUrl &&
         !dto.description &&
@@ -152,17 +140,7 @@ export class GrammarTopicAdminService {
         dto.difficulty === undefined &&
         dto.status === undefined
       ) {
-        throw new BadRequestException('Không có dữ liệu cập nhật');
-      }
-
-      // Check if level exists if updating levelId
-      if (dto.levelId) {
-        const level = await this.prisma.level.findUnique({
-          where: { id: dto.levelId },
-        });
-        if (!level) {
-          throw new BadRequestException('Level không tồn tại');
-        }
+        throw new BadRequestException("Không có dữ liệu cập nhật");
       }
 
       // Check if grammar category exists if updating grammarCategoryId
@@ -171,7 +149,7 @@ export class GrammarTopicAdminService {
           where: { id: dto.grammarCategoryId },
         });
         if (!grammarCategory) {
-          throw new BadRequestException('Danh mục ngữ pháp không tồn tại');
+          throw new BadRequestException("Danh mục ngữ pháp không tồn tại");
         }
       }
 
@@ -187,9 +165,6 @@ export class GrammarTopicAdminService {
       }
       if (dto.content !== undefined) {
         updateData.content = dto.content;
-      }
-      if (dto.levelId !== undefined) {
-        updateData.level = { connect: { id: dto.levelId } };
       }
       if (dto.grammarCategoryId !== undefined) {
         updateData.grammarCategory = { connect: { id: dto.grammarCategoryId } };

@@ -73,9 +73,6 @@ export class ExerciseAdminService {
         },
         include: {
           exerciseOptions: { orderBy: { order: "asc" } },
-          grammarTopic: true,
-          topic: true,
-          level: true,
         },
       });
 
@@ -109,9 +106,6 @@ export class ExerciseAdminService {
         where,
         include: {
           exerciseOptions: { orderBy: { order: "asc" } },
-          grammarTopic: true,
-          topic: true,
-          level: true,
         },
       }),
       this.prisma.exercise.count({ where }),
@@ -133,9 +127,6 @@ export class ExerciseAdminService {
       where: { id },
       include: {
         exerciseOptions: { orderBy: { order: "asc" } },
-        grammarTopic: true,
-        topic: true,
-        level: true,
       },
     });
     if (!exercise) {

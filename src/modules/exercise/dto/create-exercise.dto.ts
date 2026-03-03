@@ -132,14 +132,6 @@ export class CreateExerciseDto {
   content?: string;
 
   @ApiPropertyOptional({
-    description: "Gợi ý cho người dùng",
-    example: "Chủ ngữ là ngôi thứ 3 số ít",
-  })
-  @IsString()
-  @IsOptional()
-  hint?: string;
-
-  @ApiPropertyOptional({
     description: "URL media (hình ảnh, audio, video)",
   })
   @IsString()
